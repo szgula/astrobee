@@ -59,6 +59,8 @@
     <arg name="default" value="true" />
   </include>
   <group unless="$(arg loc_only)">
+    <!-- comment block below to disable the ctl -->
+    <!--
     <include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="ctl/ctl" />
       <arg name="name" value="ctl_node" />
@@ -69,6 +71,7 @@
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
     </include>
+    -->
     <include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="fam/fam" />
       <arg name="name" value="fam_node" />

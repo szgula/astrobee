@@ -108,6 +108,12 @@
     <child link="inertial_link" />
   </joint>
 
+  <gazebo>
+        <plugin name="gazebo_model_plugin_mass_controller" filename="libgazebo_model_plugin_mass_controller.so">
+            <name_link_to_change_mass>body</name_link_to_change_mass>
+        </plugin>
+  </gazebo>
+
   <!-- MODEL -->
   <xacro:include filename="$(find description)/urdf/model_drag.urdf.xacro" />
   <xacro:include filename="$(find description)/urdf/model_pmc.urdf.xacro" />

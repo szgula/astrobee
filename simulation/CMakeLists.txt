@@ -38,6 +38,7 @@ catkin_package(
     gazebo_model_plugin_flashlight_aft
     gazebo_model_plugin_llp_disk_monitor
     gazebo_model_plugin_llp_cpu_mem_monitor
+    gazebo_model_plugin_mass_controller
     gazebo_model_plugin_mlp_disk_monitor
     gazebo_model_plugin_mlp_cpu_mem_monitor
     gazebo_model_plugin_speed_cam
@@ -268,6 +269,24 @@ create_library(
     src/gazebo_model_plugin_llp_disk_monitor
   TARGET
     gazebo_model_plugin_llp_disk_monitor
+  LIBS
+    ${GAZEBO_LIBRARIES}
+    ${catkin_LIBRARIES}
+    astrobee_gazebo
+  INC
+    ${GAZEBO_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+  DEPS
+    ff_util
+    ff_hw_msgs
+)
+
+# Create a model plugin for the mass controller
+create_library(
+  DIR
+    src/gazebo_model_plugin_mass_controller
+  TARGET
+    gazebo_model_plugin_mass_controller
   LIBS
     ${GAZEBO_LIBRARIES}
     ${catkin_LIBRARIES}

@@ -31,13 +31,13 @@ def talker():
             mes.status = 2
             mes.wrench.force.x = -0.5
             #mes.accel.x = mes.wrench.force.x / 9.58
-            mes.position_error.x = 0.01
-            mes.position_error.y = 0.0001
-            mes.position_error.z = 0.0001
-            mes.attitude_error_mag = 0.0210811849684
-            mes.attitude_error.x = -0.00151798105799
-            mes.attitude_error.y = 0.000572398828808
-            mes.attitude_error.z = -0.0104213329032
+            #mes.position_error.x = 0.01
+            #mes.position_error.y = 0.0001
+            #mes.position_error.z = 0.0001
+            #mes.attitude_error_mag = 0.0210811849684
+            #mes.attitude_error.x = -0.00151798105799
+            #mes.attitude_error.y = 0.000572398828808
+            #mes.attitude_error.z = -0.0104213329032
         pub.publish(mes)
         if n % 25 == 0:
             mes_heart = Heartbeat()

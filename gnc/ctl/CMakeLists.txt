@@ -23,7 +23,7 @@ catkin_package(
  DEPENDS ff_msgs ff_hw_msgs ff_common
 )
 
-catkin_install_python(PROGRAMS scripts/dummy_controller.py
+catkin_install_python(PROGRAMS scripts/dummy_controller.py  scripts/go_and_stop_controller.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

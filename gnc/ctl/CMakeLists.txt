@@ -19,8 +19,12 @@ project(ctl)
 
 catkin_package(
  LIBRARIES ctl
- CATKIN_DEPENDS roscpp sensor_msgs nav_msgs
+ CATKIN_DEPENDS roscpp sensor_msgs nav_msgs rospy
  DEPENDS ff_msgs ff_hw_msgs ff_common
+)
+
+catkin_install_python(PROGRAMS scripts/dummy_controller.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 create_library(TARGET ctl

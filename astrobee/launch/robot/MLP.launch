@@ -70,6 +70,7 @@
     <arg name="debug" value="$(arg debug)" />
     <arg name="default" value="true" />
   </include>
+  
   <include file="$(find ff_util)/launch/ff_nodelet.launch">
     <arg name="class" value="handrail_detect/HandrailDetect" />
     <arg name="name" value="handrail_detect" />
@@ -371,7 +372,7 @@
     </include>
 
     <!-- Vive (optional) -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="vive/ViveNodelet" />
       <arg name="name" value="vive" />
       <arg name="manager" value="mlp_vive" />
@@ -380,11 +381,12 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="false" />
-    </include>
+    </include>-->
 
   </group>
 
-  <group if="$(arg loc_only)">
+
+  <!--<group if="$(arg loc_only)">
     <include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="localization_node/LocalizationNodelet" />
       <arg name="name" value="localization_node" />
@@ -415,6 +417,6 @@
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
     </include>
-  </group>
+  </group>-->
 
 </launch>

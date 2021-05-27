@@ -5,6 +5,7 @@ from ff_msgs.msg import FamCommand
 from ff_msgs.msg import Heartbeat
 from ff_msgs.msg import FlightMode
 from ff_msgs.msg import EkfState
+from geometry_msgs.msg import PoseStamped
 from copy import deepcopy
 import numpy as np
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
@@ -18,7 +19,8 @@ class StopAngGoController:
         self.pub_heart = rospy.Publisher(r"heartbeat", Heartbeat, queue_size=5, latch=True)
         self.pub_mode = rospy.Publisher(r"/mob/flight_mode", FlightMode, queue_size=5, latch=True)
         self.rate = rospy.Rate(self.rate_contr_hz) # 62.5hz
-        rospy.Subscriber("gnc/ekf", EkfState, self._ekf_callback)
+        #rospy.Subscriber("gnc/ekf", EkfState, self._ekf_callback)
+        rospy.Subscriber("loc/truth/pose", PoseStamped, self._ekf_callback)
 
         self.n_command = 0
         self.n_heart = 0

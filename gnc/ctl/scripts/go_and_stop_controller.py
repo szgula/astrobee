@@ -31,7 +31,10 @@ class StopAngGoController:
         self._ekf_state = EkfState()
 
         self.orient_contr = OrientationController(1/self.rate_contr_hz)
+        self.pos_contr = PositionController(1/self.rate_contr_hz)
         self.orientation_read = False
+        self.position_read = False
+        self.initial_pos = 0
 
 
     def _get_heartbeat_mes(self):
@@ -96,7 +99,10 @@ class StopAngGoController:
         #rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
         #print('received message with: ', data.pose.position.x, data.pose.orientation.x)
         self._ekf_state = data
+        if self.position_read == False:
+            self.initial_pos = self._ekf_state.pose.position
         self.orientation_read = True
+        self.position_read = True
 
     def spin(self):
         print('Starts talking...')
@@ -108,7 +114,8 @@ class StopAngGoController:
                 if self.orientation_read:
                     orientation = self._ekf_state.pose.orientation
                     orientation = euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w))
-                    print("step: ", self.n_command / 100.0, " orientation: ", orientation)
+                    position = [self._ekf_state.pose.position.x, self._ekf_state.pose.position.y, self._ekf_state.pose.position.z]
+                    print("step: ", self.n_command / 100.0, " orientation: ", position)
                 else:
                     print("step: ", self.n_command / 100.0)
             self.rate.sleep()
@@ -123,17 +130,40 @@ class StopAngGoController:
     def control(self):
         if self.n_command < 100:
             torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
+            forces = [0, 0, 0]
             control_mode=1
             status=3
+        else:
+            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
+            forces = self.pos_contr(self.initial_pos.x + 0.8, self.initial_pos.y, self.initial_pos.z, self._ekf_state.pose.position)
+            control_mode=2
+            status=2
+        '''elif self.n_command < 1000:
+            torques = self.orient_contr(np.deg2rad(80), 0, 0, self._ekf_state.pose.orientation)
+            control_mode=2
+            status=2
         elif self.n_command < 2000:
-            torques = self.orient_contr(np.pi/4, 0, 0, self._ekf_state.pose.orientation)
+            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
+            control_mode=2
+            status=2
+        elif self.n_command < 3000:
+            torques = self.orient_contr(0, np.deg2rad(80), 0, self._ekf_state.pose.orientation)
+            control_mode=2
+            status=2
+        elif self.n_command < 4000:
+            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
+            control_mode=2
+            status=2
+        elif self.n_command < 5000:
+            torques = self.orient_contr(0, 0, np.deg2rad(80), self._ekf_state.pose.orientation)
             control_mode=2
             status=2
         else:
             torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
             control_mode=2
             status=2
-        self._update_command_mes(control_mode=control_mode, status=status, torques=torques)
+        '''
+        self._update_command_mes(control_mode=control_mode, status=status, torques=torques, forces=forces)
         self.pub_ctl.publish(self.mes_command)
         
 
@@ -141,15 +171,27 @@ class StopAngGoController:
 class OrientationController:
     def __init__(self, dt):
         #self.contr_x  = PID(0.01, 0, 7/4, 0, dt)  # 4,0,7
-        self.contr_x  = PID(1, 0, 7/4, 0, dt)  # 4,0,7
-        self.contr_y  = PID(1, 0, 7/4, 0, dt)
-        self.contr_z  = PID(1, 0, 7/4, 0, dt)
+        self.contr_x  = PID(1, 0, 7/3, 0, dt)  # 4,0,7
+        self.contr_y  = PID(1, 0, 7/3, 0, dt)
+        self.contr_z  = PID(1, 0, 7/3, 0, dt)
     
     def __call__(self, x_target, y_target, z_target, orientation):
         orientation = euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w))
         torque_x = self.contr_x(x_target, orientation[0])
         torque_y = self.contr_y(y_target, orientation[1])
         torque_z = self.contr_z(z_target, orientation[2])
+        return [torque_x, torque_y, torque_z]
+
+class PositionController:
+    def __init__(self, dt):
+        self.contr_x  = PID(1, 0, 3, 0, dt) 
+        self.contr_y  = PID(0.1, 0, 0, 0, dt)
+        self.contr_z  = PID(0.1, 0, 0, 0, dt)
+    
+    def __call__(self, x_target, y_target, z_target, position):
+        torque_x = self.contr_x(x_target, position.x)
+        torque_y = self.contr_y(y_target, position.y)
+        torque_z = self.contr_z(z_target, position.z)
         return [torque_x, torque_y, torque_z]
 
 class PID:

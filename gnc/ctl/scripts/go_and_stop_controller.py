@@ -114,7 +114,9 @@ class StopAngGoController:
                 if self.orientation_read:
                     orientation = self._ekf_state.pose.orientation
                     orientation = euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w))
-                    position = [self._ekf_state.pose.position.x, self._ekf_state.pose.position.y, self._ekf_state.pose.position.z]
+                    position = [self._ekf_state.pose.position.x - self.initial_pos.x, 
+                                self._ekf_state.pose.position.y - self.initial_pos.y, 
+                                self._ekf_state.pose.position.z - self.initial_pos.z]
                     print("step: ", self.n_command / 100.0, " orientation: ", position)
                 else:
                     print("step: ", self.n_command / 100.0)
@@ -128,41 +130,32 @@ class StopAngGoController:
         
 
     def control(self):
+        trajectory = [  #(1000, 0, 0, 0), 
+                        (2000, (-0.8, 0, 0),     (np.pi/3, 0, 0)), 
+                        (3000, (-0.8, 0.8, 0),   (0, 0, 0)),
+                        (4000, (-0.8, 0.8, 0.8), (0, np.pi/3, 0)),
+                        (5000, (0, 0.8, 0.8),    (0, 0, 0)),
+                        (6000, (0, 0, 0.8),      (0, 0, np.pi/3)),
+                        (7000, (0, 0, 0.8),      (0, 0, 0))]
         if self.n_command < 100:
             torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
             forces = [0, 0, 0]
             control_mode=1
             status=3
         else:
-            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
-            forces = self.pos_contr(self.initial_pos.x + 0.8, self.initial_pos.y, self.initial_pos.z, self._ekf_state.pose.position)
+            if self.n_command // 1000 < len(trajectory):
+                untill_t, d_pos, orient_ = trajectory[self.n_command // 1000]
+                dx, dy, dz = d_pos
+                x_rot, y_rot, z_rot = orient_
+            else:
+                dx, dy, dz = 0, 0, 0
+                x_rot, y_rot, z_rot = 0, 0, 0
+            torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation)
+            #forces = self.pos_contr(self.initial_pos.x + dx, self.initial_pos.y + dy, self.initial_pos.z + dz, self._ekf_state.pose.position)
+            forces = [0, 0, 0]
             control_mode=2
             status=2
-        '''elif self.n_command < 1000:
-            torques = self.orient_contr(np.deg2rad(80), 0, 0, self._ekf_state.pose.orientation)
-            control_mode=2
-            status=2
-        elif self.n_command < 2000:
-            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
-            control_mode=2
-            status=2
-        elif self.n_command < 3000:
-            torques = self.orient_contr(0, np.deg2rad(80), 0, self._ekf_state.pose.orientation)
-            control_mode=2
-            status=2
-        elif self.n_command < 4000:
-            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
-            control_mode=2
-            status=2
-        elif self.n_command < 5000:
-            torques = self.orient_contr(0, 0, np.deg2rad(80), self._ekf_state.pose.orientation)
-            control_mode=2
-            status=2
-        else:
-            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
-            control_mode=2
-            status=2
-        '''
+
         self._update_command_mes(control_mode=control_mode, status=status, torques=torques, forces=forces)
         self.pub_ctl.publish(self.mes_command)
         
@@ -184,9 +177,9 @@ class OrientationController:
 
 class PositionController:
     def __init__(self, dt):
-        self.contr_x  = PID(1, 0, 3, 0, dt) 
-        self.contr_y  = PID(0.1, 0, 0, 0, dt)
-        self.contr_z  = PID(0.1, 0, 0, 0, dt)
+        self.contr_x  = PID(1, 0, 4, 0, dt) 
+        self.contr_y  = PID(0.3, 0, 1.2, 0, dt)
+        self.contr_z  = PID(0.3, 0, 1.2, 0, dt)
     
     def __call__(self, x_target, y_target, z_target, position):
         torque_x = self.contr_x(x_target, position.x)

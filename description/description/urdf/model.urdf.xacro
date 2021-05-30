@@ -109,6 +109,29 @@
     <child link="inertial_link" />
   </joint>
 
+  <link name="printed_part">
+    <self_collide>false</self_collide>
+    <visual name="printed_part_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.4" radius="0.01"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <mass value="1.0"/>
+      <origin xyz="0.4 0 0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="printed_joint" type="prismatic">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0.8 0 0" rpy="0 1.57075 0" />
+    <parent link="body" />
+    <child link="printed_part" />
+    <limit effort="1.0" lower="-0.01" upper="0.0" velocity="0.05"/>
+  </joint>
+
   <gazebo>
         <plugin name="gazebo_model_plugin_mass_controller" filename="libgazebo_model_plugin_mass_controller.so">
             <name_link_to_change_mass>body</name_link_to_change_mass>

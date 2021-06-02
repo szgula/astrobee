@@ -29,55 +29,61 @@
 #include <thread>
 
 namespace gazebo {
-class ModelMassControl : public ModelPlugin {
+class ModelPrintControl : public ModelPlugin {
  public:
   void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
-    if (_sdf->HasElement("name_link_to_change_mass")) {
-      this->name_link_to_change_mass = _sdf->Get<std::string>("name_link_to_change_mass");
+    if (_sdf->HasElement("name_link_to_print")) {
+      this->name_link_to_print = _sdf->Get<std::string>("name_link_to_print");
     } else {
-      ROS_WARN("No link name given, setting default name %s",
-             this->name_link_to_change_mass.c_str());
+      ROS_WARN("No name_link_to_print given, setting default name %s",
+             this->name_link_to_print.c_str());
+    }
+
+    if (_sdf->HasElement("name_link_printing_roll")) {
+      this->name_link_printing_roll = _sdf->Get<std::string>("name_link_printing_roll");
+    } else {
+      ROS_WARN("No name_link_printing_roll given, setting default name %s",
+             this->name_link_printing_roll.c_str());
     }
 
     // Store the pointer to the model
     this->model = _parent;
-    this->link_to_change_mass = this->model->GetLink(this->name_link_to_change_mass);
-    // ROS_WARN("parent has ...%i, childs", this->model->GetChildCount());
+    this->link_to_print = this->model->GetLink(this->name_link_to_print);
+    this->link_to_roll = this->model->GetLink(this->name_link_printing_roll);
 
 
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
     this->updateConnection = event::Events::ConnectWorldUpdateBegin(
-        std::bind(&ModelMassControl::OnUpdate, this));
-
+        std::bind(&ModelPrintControl::OnUpdate, this));
 
     // Create a topic name
-    std::string model_mass_topicName = "/model_mass";
+    std::string model_print_topicName = "/model_print";
 
     // Initialize ros, if it has not already bee initialized.
     if (!ros::isInitialized()) {
       int argc = 0;
       char **argv = NULL;
-      ros::init(argc, argv, "model_mas_controler_rosnode",
+      ros::init(argc, argv, "model_print_controler_rosnode",
                 ros::init_options::NoSigintHandler);
     }
 
     // Create our ROS node. This acts in a similar manner to
     // the Gazebo node
-    this->rosNode.reset(new ros::NodeHandle("model_mas_controler_rosnode"));
+    this->rosNode.reset(new ros::NodeHandle("model_print_controler_rosnode"));
 
     // Freq
     ros::SubscribeOptions so = ros::SubscribeOptions::create<std_msgs::Float32>(
-        model_mass_topicName, 1,
-        boost::bind(&ModelMassControl::OnRosMsg, this, _1), ros::VoidPtr(),
+        model_print_topicName, 1,
+        boost::bind(&ModelPrintControl::OnRosMsg, this, _1), ros::VoidPtr(),
         &this->rosQueue);
     this->rosSub = this->rosNode->subscribe(so);
 
     // Spin up the queue helper thread.
     this->rosQueueThread =
-        std::thread(std::bind(&ModelMassControl::QueueThread, this));
+        std::thread(std::bind(&ModelPrintControl::QueueThread, this));
 
-    ROS_WARN("Loaded ModelMassControl Plugin with parent...%s, Mass Controll Started ",
+    ROS_WARN("Loaded ModelPrintControl Plugin with parent...%s, Print Controll Started ",
              this->model->GetName().c_str());
   }
 
@@ -88,22 +94,38 @@ class ModelMassControl : public ModelPlugin {
   }
 
  public:
-  void SetMass(const double &_mass) {
-    this->model_mass = _mass;
+  void PrintStep(const double &_mass_step) {
+    this->print_mass += _mass_step;
     ROS_WARN("New mass received ");
     ROS_WARN("change following link: %s ", this->model->GetName().c_str());
     // Changing the mass
-    physics::InertialPtr inertial = this->link_to_change_mass->GetInertial();
-    ROS_WARN("current model_mass >> %f", inertial->GetMass());
-    inertial->SetMass(this->model_mass);
-    ROS_WARN("New mass set ");
-    this->link_to_change_mass->UpdateMass();
-    ROS_WARN("model_mass >> %f", this->model_mass);
+    physics::InertialPtr inertial = this->link_to_print->GetInertial();
+    ROS_WARN("current print_mass >> %f", inertial->GetMass());
+    inertial->SetMass(this->print_mass);
+    this->link_to_print->UpdateMass();
+
+    double length = this->print_mass / this->cross_density;
+    double inertia_x = this->print_mass * print_radius * print_radius;
+    double inertia_y = this->print_mass * length * length / 3;
+    double inertia_z = this->print_mass * length * length / 3;
+    inertial->SetInertiaMatrix(inertia_x, inertia_y, inertia_z, 0, 0, 0);
+    
+
+    // ignition::math::Vector3d new_scale(3.0, 1.0, 1.0);
+    // this->link_to_print->SetScale(new_scale);
+    // sdf::ElementPtr link_sdf = this->link_to_print.GetSDF();
+    //ROS_WARN("link_sdf name : %s, name: %s, attribute count: %i", 
+    //                link_sdf.GetDescription(), link_sdf.GatName(), link_sdf.GetAttributeCoun());
+
+
+    this->link_to_print->Update();
+    double visual_orgin_x = this->initial_x_displacement + length / 2;
+    ROS_WARN("new mass >> %f, inertial: >> %f %f %f %f", this->print_mass, inertia_x, inertia_y, inertia_z);
   }
 
  public:
   void OnRosMsg(const std_msgs::Float32ConstPtr &_msg) {
-    this->SetMass(_msg->data);
+    this->PrintStep(_msg->data);
   }
 
   /// \brief ROS helper function that processes messages
@@ -126,7 +148,10 @@ class ModelMassControl : public ModelPlugin {
 
 
   // Mas of model
-  double model_mass = 9.0877;
+  double print_mass = 0;
+  double cross_density = 0.65;  // kg/m: cross-area is 6.5cm, and ABS density ~1000 kg / m^3
+  double print_radius = 0.02;  // 2cm
+  double initial_x_displacement = 0.4;
 
   /// \brief A node use for ROS transport
  private:
@@ -144,12 +169,14 @@ class ModelMassControl : public ModelPlugin {
 
   /// \brief A ROS subscriber
  private:
-  physics::LinkPtr link_to_change_mass;
+  physics::LinkPtr link_to_print;
+  physics::LinkPtr link_to_roll;
 
  private:
-  std::string name_link_to_change_mass = "base_link";
+  std::string name_link_to_print = "printed_joint";
+  std::string name_link_printing_roll = "prinitng_roll";
 };
 
 // Register this plugin with the simulator
-GZ_REGISTER_MODEL_PLUGIN(ModelMassControl)
+GZ_REGISTER_MODEL_PLUGIN(ModelPrintControl)
 }  // namespace gazebo

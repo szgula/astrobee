@@ -39,6 +39,7 @@ catkin_package(
     gazebo_model_plugin_llp_disk_monitor
     gazebo_model_plugin_llp_cpu_mem_monitor
     gazebo_model_plugin_mass_controller
+    gazebo_model_plugin_printing
     gazebo_model_plugin_mlp_disk_monitor
     gazebo_model_plugin_mlp_cpu_mem_monitor
     gazebo_model_plugin_speed_cam
@@ -55,6 +56,7 @@ catkin_package(
     gazebo_sensor_plugin_sci_cam
     gazebo_world_plugin_speed
     gazebo_system_plugin_client
+    gazebo_visual_plugin_printing
   CATKIN_DEPENDS
     visualization_msgs
     tf2
@@ -287,6 +289,24 @@ create_library(
     src/gazebo_model_plugin_mass_controller
   TARGET
     gazebo_model_plugin_mass_controller
+  LIBS
+    ${GAZEBO_LIBRARIES}
+    ${catkin_LIBRARIES}
+    astrobee_gazebo
+  INC
+    ${GAZEBO_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+  DEPS
+    ff_util
+    ff_hw_msgs
+)
+
+# Create a model plugin for the print controller
+create_library(
+  DIR
+    src/gazebo_model_plugin_printing
+  TARGET
+    gazebo_model_plugin_printing
   LIBS
     ${GAZEBO_LIBRARIES}
     ${catkin_LIBRARIES}
@@ -569,6 +589,20 @@ create_library(
     ${catkin_INCLUDE_DIRS}
 )
 
+
+# Create a visual plugin for printing
+create_library(
+  DIR
+    src/gazebo_visual_plugin_printing
+  TARGET
+    gazebo_visual_plugin_printing
+  LIBS
+    ${GAZEBO_LIBRARIES}
+    ${catkin_LIBRARIES}
+  INC
+    ${GAZEBO_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
+)
 
 # Create a model plugin for the client gui
 create_library(

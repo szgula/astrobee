@@ -114,13 +114,13 @@
     <visual name="printed_part_visual">
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <cylinder length="0.4" radius="0.01"/>
+        <cylinder length="0.01" radius="0.01"/>
       </geometry>
     </visual>
     <inertial>
-      <mass value="1.0"/>
+      <mass value="0.001"/>
       <origin xyz="0.5 0 0"/>
-      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
     </inertial>
   </link>
 
@@ -129,7 +129,7 @@
     <origin xyz="0.2 0 0" rpy="0 1.57075 0" />
     <parent link="body" />
     <child link="printed_part" />
-    <limit effort="1.0" lower="-0.01" upper="0.01" velocity="0.05"/>
+    <limit effort="1.0" lower="-0.01" upper="0.01" velocity="0.005"/>
   </joint>
 
   <link name="print_roll">
@@ -157,11 +157,6 @@
         <plugin name="gazebo_model_plugin_printing" filename="libgazebo_model_plugin_printing.so">
             <name_link_to_print>printed_part</name_link_to_print>
             <name_link_printing_roll>print_roll</name_link_printing_roll>
-        </plugin>
-  </gazebo>
-
-  <gazebo>
-        <plugin name="gazebo_visual_plugin_printing" filename="libgazebo_visual_plugin_printing.so">
         </plugin>
   </gazebo>
 

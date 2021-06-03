@@ -27,6 +27,7 @@
 #include <gazebo/transport/transport.hh>
 #include <ignition/math/Vector3.hh>
 #include <thread>
+#include "std_msgs/String.h"
 
 namespace gazebo {
 class ModelPrintControl : public ModelPlugin {
@@ -50,6 +51,17 @@ class ModelPrintControl : public ModelPlugin {
     this->model = _parent;
     this->link_to_print = this->model->GetLink(this->name_link_to_print);
     this->link_to_roll = this->model->GetLink(this->name_link_printing_roll);
+
+
+
+
+    this->world_ = this->model->GetWorld();
+    this->node_ = gazebo::transport::NodePtr(new gazebo::transport::Node());
+    this->node_->Init(world_->GetName());
+    this->pub_visual_ = this->node_->Advertise<gazebo::msgs::Visual>("~/visual");
+
+
+
 
 
     // Listen to the update event. This event is broadcast every
@@ -83,6 +95,11 @@ class ModelPrintControl : public ModelPlugin {
     this->rosQueueThread =
         std::thread(std::bind(&ModelPrintControl::QueueThread, this));
 
+    //this->pub_visual_ = this->rosNode->advertise<gazebo::msgs::Visual>("/visual", 1);
+    //ros::Publisher chatter_pub = this->rosNode->advertise<gazebo::msgs::Visual>("chatter", 1000);
+
+
+
     ROS_WARN("Loaded ModelPrintControl Plugin with parent...%s, Print Controll Started ",
              this->model->GetName().c_str());
   }
@@ -94,7 +111,10 @@ class ModelPrintControl : public ModelPlugin {
   }
 
  public:
-  void PrintStep(const double &_mass_step) {
+  void PrintStep(const double &_length_step) {
+    this->print_scale += _length_step / this->init_length;
+    double length = this->print_scale * this->init_length;
+    double _mass_step = _length_step * this->cross_density;
     this->print_mass += _mass_step;
     ROS_WARN("New mass received ");
     ROS_WARN("change following link: %s ", this->model->GetName().c_str());
@@ -104,23 +124,36 @@ class ModelPrintControl : public ModelPlugin {
     inertial->SetMass(this->print_mass);
     this->link_to_print->UpdateMass();
 
-    double length = this->print_mass / this->cross_density;
     double inertia_x = this->print_mass * print_radius * print_radius;
-    double inertia_y = this->print_mass * length * length / 3;
-    double inertia_z = this->print_mass * length * length / 3;
+    double inertia_y = this->print_mass * length * length / 12;
+    double inertia_z = this->print_mass * length * length / 12;
     inertial->SetInertiaMatrix(inertia_x, inertia_y, inertia_z, 0, 0, 0);
     
 
-    // ignition::math::Vector3d new_scale(3.0, 1.0, 1.0);
-    // this->link_to_print->SetScale(new_scale);
-    // sdf::ElementPtr link_sdf = this->link_to_print.GetSDF();
-    //ROS_WARN("link_sdf name : %s, name: %s, attribute count: %i", 
-    //                link_sdf.GetDescription(), link_sdf.GatName(), link_sdf.GetAttributeCoun());
+    ignition::math::Vector3d new_scale(1.0, 1.0, this->print_scale);
+    std::string visual_name_ = "link_visual";
+
+    gazebo::msgs::Visual visualMsg = this->link_to_print->GetVisualMessage(visual_name_);
+    gazebo::msgs::Vector3d* scale_factor = new gazebo::msgs::Vector3d{gazebo::msgs::Convert(new_scale)};
+
+    visualMsg.set_name(this->link_to_print->GetScopedName());
+    visualMsg.set_parent_name(this->model->GetScopedName());
+    visualMsg.set_allocated_scale(scale_factor);
+    pub_visual_->Publish(visualMsg);
+  
 
 
     this->link_to_print->Update();
     double visual_orgin_x = this->initial_x_displacement + length / 2;
     ROS_WARN("new mass >> %f, inertial: >> %f %f %f %f", this->print_mass, inertia_x, inertia_y, inertia_z);
+
+    //math::Pose relativePose = this->link_to_print->GetRelativePose();
+    //ROS_WARN("relative pose >> %f %f %f", relativePose.pos.x, relativePose.pos.y, relativePose.pos.z);
+    //relativePose.pos.x = length / 2;
+    //relativePose.pos.y = 0.0;
+    //relativePose.pos.z = 0.0;
+    //ignition::math::Pose3d visual_pos(length / 2, 0, 0, 0, 0, 0, 1);
+    //this->link_to_print->SetVisualPose(1, visual_pos);
   }
 
  public:
@@ -140,7 +173,11 @@ class ModelPrintControl : public ModelPlugin {
 
   // Pointer to the model
  private:
-  physics::ModelPtr model;
+    //gazebo::event::ConnectionPtr updateConnection;
+    gazebo::transport::NodePtr node_;
+    gazebo::transport::PublisherPtr pub_visual_;    
+    gazebo::physics::WorldPtr world_;
+    physics::ModelPtr model;
 
   // Pointer to the update event connection
  private:
@@ -148,10 +185,12 @@ class ModelPrintControl : public ModelPlugin {
 
 
   // Mas of model
-  double print_mass = 0;
+  double print_mass = 0.0;
+  double print_scale = 1.0;
+  double init_length = 0.01;
   double cross_density = 0.65;  // kg/m: cross-area is 6.5cm, and ABS density ~1000 kg / m^3
   double print_radius = 0.02;  // 2cm
-  double initial_x_displacement = 0.4;
+  double initial_x_displacement = 0.2;
 
   /// \brief A node use for ROS transport
  private:
@@ -160,6 +199,8 @@ class ModelPrintControl : public ModelPlugin {
   /// \brief A ROS subscriber
  private:
   ros::Subscriber rosSub;
+  //gazebo::transport::PublisherPtr pub_visual_;
+  //ros::Publisher pub_visual_;
   /// \brief A ROS callbackqueue that helps process messages
  private:
   ros::CallbackQueue rosQueue;

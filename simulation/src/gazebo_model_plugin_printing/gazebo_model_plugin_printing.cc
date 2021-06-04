@@ -51,6 +51,7 @@ class ModelPrintControl : public ModelPlugin {
     this->model = _parent;
     this->link_to_print = this->model->GetLink(this->name_link_to_print);
     this->link_to_roll = this->model->GetLink(this->name_link_printing_roll);
+    this->print_joint = this->model->GetJoint("printed_joint");
 
 
 
@@ -108,52 +109,71 @@ class ModelPrintControl : public ModelPlugin {
  public:
   void OnUpdate() {
     ROS_DEBUG("Update Tick...");
+    pub_visual_->Publish(visualMsg);
   }
 
  public:
   void PrintStep(const double &_length_step) {
     this->print_scale += _length_step / this->init_length;
-    double length = this->print_scale * this->init_length;
+    this->length += _length_step;
     double _mass_step = _length_step * this->cross_density;
     this->print_mass += _mass_step;
-    ROS_WARN("New mass received ");
-    ROS_WARN("change following link: %s ", this->model->GetName().c_str());
+    //ROS_WARN("New mass received ");
+    //ROS_WARN("change following link: %s ", this->model->GetName().c_str());
     // Changing the mass
     physics::InertialPtr inertial = this->link_to_print->GetInertial();
-    ROS_WARN("current print_mass >> %f", inertial->GetMass());
+    //ROS_WARN("current print_mass >> %f", inertial->GetMass());
     inertial->SetMass(this->print_mass);
     this->link_to_print->UpdateMass();
 
-    double inertia_x = this->print_mass * print_radius * print_radius;
-    double inertia_y = this->print_mass * length * length / 12;
-    double inertia_z = this->print_mass * length * length / 12;
+    double inertia_x = std::max(this->print_mass * print_radius * print_radius, 0.001);
+    double inertia_y = std::max(this->print_mass * this->length * this->length / 12, 0.001);
+    double inertia_z = std::max(this->print_mass * this->length * this->length / 12, 0.001);
     inertial->SetInertiaMatrix(inertia_x, inertia_y, inertia_z, 0, 0, 0);
+    this->link_to_print->Update();
     
 
     ignition::math::Vector3d new_scale(1.0, 1.0, this->print_scale);
     std::string visual_name_ = "link_visual";
 
-    gazebo::msgs::Visual visualMsg = this->link_to_print->GetVisualMessage(visual_name_);
+    visualMsg = this->link_to_print->GetVisualMessage(visual_name_);
     gazebo::msgs::Vector3d* scale_factor = new gazebo::msgs::Vector3d{gazebo::msgs::Convert(new_scale)};
 
     visualMsg.set_name(this->link_to_print->GetScopedName());
     visualMsg.set_parent_name(this->model->GetScopedName());
     visualMsg.set_allocated_scale(scale_factor);
+    
+
+    ignition::math::Pose3d visual_pos(length / 2 + 1, 0, 0, 0, 1.57075, 0);
+    gazebo::msgs::Pose* pose_visual_mes = new gazebo::msgs::Pose{gazebo::msgs::Convert(visual_pos)};
+    //visualMsg.set_allocated_pose(pose_visual_mes);
+
     pub_visual_->Publish(visualMsg);
   
 
+    
+    double visual_orgin_x = this->initial_x_displacement + this->length / 2;
+    //ROS_WARN("new mass >> %f, inertial: >> %f %f %f", this->print_mass, inertia_x, inertia_y, inertia_z);
 
-    this->link_to_print->Update();
-    double visual_orgin_x = this->initial_x_displacement + length / 2;
-    ROS_WARN("new mass >> %f, inertial: >> %f %f %f %f", this->print_mass, inertia_x, inertia_y, inertia_z);
-
-    //math::Pose relativePose = this->link_to_print->GetRelativePose();
-    //ROS_WARN("relative pose >> %f %f %f", relativePose.pos.x, relativePose.pos.y, relativePose.pos.z);
-    //relativePose.pos.x = length / 2;
-    //relativePose.pos.y = 0.0;
-    //relativePose.pos.z = 0.0;
-    //ignition::math::Pose3d visual_pos(length / 2, 0, 0, 0, 0, 0, 1);
+    math::Pose relativePose = this->link_to_print->GetRelativePose();
+    math::Vector3 rotEuler = relativePose.rot.GetAsEuler();
+    ROS_WARN("relative pose >> %f %f %f rot >> %f %f %f, new pose %f, length %f", 
+                    relativePose.pos.x, relativePose.pos.y, relativePose.pos.z, 
+                    rotEuler.x, rotEuler.y, rotEuler.z,
+                    relativePose.pos.x +  _length_step / 2, this->length);
+    relativePose.pos.x = visual_orgin_x;
+    relativePose.pos.y = 0.0;
+    relativePose.pos.z = 0.0;
+    math::Pose newRelativePose(visual_orgin_x, 0, 0, 0, 0, 0);
+    
+    //this->link_to_print->SetRelativePose(relativePose);
+    //ROS_WARN("relative pos >> %f, inertial: >> %f %f %f", relativePose.pos.x, inertia_x, inertia_y, inertia_z);
     //this->link_to_print->SetVisualPose(1, visual_pos);
+    //this->link_to_print->Update();
+    this->print_joint->SetPosition(0, this->length / 2);
+    //this->print_joint->SetVelocity(0, 0.0);
+    this->print_joint->Update();
+    this->model->Update();
   }
 
  public:
@@ -178,6 +198,7 @@ class ModelPrintControl : public ModelPlugin {
     gazebo::transport::PublisherPtr pub_visual_;    
     gazebo::physics::WorldPtr world_;
     physics::ModelPtr model;
+    gazebo::msgs::Visual visualMsg;
 
   // Pointer to the update event connection
  private:
@@ -188,9 +209,10 @@ class ModelPrintControl : public ModelPlugin {
   double print_mass = 0.0;
   double print_scale = 1.0;
   double init_length = 0.01;
+  double length = this->init_length;
   double cross_density = 0.65;  // kg/m: cross-area is 6.5cm, and ABS density ~1000 kg / m^3
   double print_radius = 0.02;  // 2cm
-  double initial_x_displacement = 0.2;
+  double initial_x_displacement = 0.5;
 
   /// \brief A node use for ROS transport
  private:
@@ -212,6 +234,7 @@ class ModelPrintControl : public ModelPlugin {
  private:
   physics::LinkPtr link_to_print;
   physics::LinkPtr link_to_roll;
+  physics::JointPtr print_joint;
 
  private:
   std::string name_link_to_print = "printed_joint";

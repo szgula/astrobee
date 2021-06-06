@@ -35,6 +35,8 @@ class StopAngGoController:
         self.orientation_read = False
         self.position_read = False
         self.initial_pos = 0
+        self.last_torque = [0, 0, 0]
+        self.last_force = [0, 0, 0]
 
 
     def _get_heartbeat_mes(self):
@@ -117,7 +119,11 @@ class StopAngGoController:
                     position = [self._ekf_state.pose.position.x - self.initial_pos.x, 
                                 self._ekf_state.pose.position.y - self.initial_pos.y, 
                                 self._ekf_state.pose.position.z - self.initial_pos.z]
-                    print("step: ", self.n_command / 100.0, " orientation: ", position)
+                    print("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques: {:.2f} {:.2f} {:.2f}, \tforces: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+                                np.rad2deg(orientation[0]), np.rad2deg(orientation[1]), np.rad2deg(orientation[2]) ,
+                                position[0], position[1], position[2],
+                                self.last_torque[0]*100, self.last_torque[1]*100, self.last_torque[2]*100,
+                                self.last_force[0]*10, self.last_force[1]*10, self.last_force[2]*10))
                 else:
                     print("step: ", self.n_command / 100.0)
             self.rate.sleep()
@@ -130,13 +136,20 @@ class StopAngGoController:
         
 
     def control(self):
-        trajectory = [  #(1000, 0, 0, 0), 
-                        (2000, (-0.8, 0, 0),     (np.pi/3, 0, 0)), 
-                        (3000, (-0.8, 0.8, 0),   (0, 0, 0)),
-                        (4000, (-0.8, 0.8, 0.8), (0, np.pi/3, 0)),
-                        (5000, (0, 0.8, 0.8),    (0, 0, 0)),
-                        (6000, (0, 0, 0.8),      (0, 0, np.pi/3)),
-                        (7000, (0, 0, 0.8),      (0, 0, 0))]
+        trajectory = [  (1000, (0, 0, 0),        (0, 0, 0)), 
+                        (2000, (-0.8, 0, 0),     (-np.deg2rad(66), 0, 0)), 
+                        (3000, (-0.8, 0.8, 0),   (-np.deg2rad(75), -np.deg2rad(0), 0)),
+                        (4000, (-0.8, 0.8, 0.8), (-np.deg2rad(80), -np.deg2rad(0), 0)),
+                        (5000, (0, 0.8, 0.8),    (-np.deg2rad(85), -np.deg2rad(0), 0)),
+                        (6000, (0, 0, 0.8),      (-np.deg2rad(89), -np.deg2rad(0), 0)),
+                        (7000, (0, 0, 0.8),      (-np.deg2rad(90), -np.deg2rad(10), 0))]
+        trajectory_2 = [  (1000, (0, 0, 0),        (0, 0, 0)), 
+                        (2000, (-0.8, 0, 0),     (-np.deg2rad(66), np.deg2rad(0), 0)), 
+                        (3000, (-0.8, 0.8, 0),   (-np.deg2rad(0),  np.deg2rad(0), 0)),
+                        (4000, (-0.8, 0.8, 0.8), (-np.deg2rad(0), -np.deg2rad(66), 0)),
+                        (5000, (0, 0.8, 0.8),    (-np.deg2rad(0), -np.deg2rad(0), 0)),
+                        (6000, (0, 0, 0.8),      (-np.deg2rad(0), -np.deg2rad(0), np.deg2rad(66))),
+                        (7000, (0, 0, 0.8),      (-np.deg2rad(0), -np.deg2rad(0), 0))]
         if self.n_command < 100:
             torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
             forces = [0, 0, 0]
@@ -158,6 +171,8 @@ class StopAngGoController:
 
         self._update_command_mes(control_mode=control_mode, status=status, torques=torques, forces=forces)
         self.pub_ctl.publish(self.mes_command)
+        self.last_force = forces
+        self.last_torque = torques
         
 
 
@@ -167,12 +182,14 @@ class OrientationController:
         self.contr_x  = PID(1, 0, 7/3, 0, dt)  # 4,0,7
         self.contr_y  = PID(1, 0, 7/3, 0, dt)
         self.contr_z  = PID(1, 0, 7/3, 0, dt)
+        self.limit = 0.2 * 0.1
     
     def __call__(self, x_target, y_target, z_target, orientation):
         orientation = euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w))
         torque_x = self.contr_x(x_target, orientation[0])
         torque_y = self.contr_y(y_target, orientation[1])
         torque_z = self.contr_z(z_target, orientation[2])
+        torque_x, torque_y, torque_z = np.clip(torque_x, -self.limit, self.limit), np.clip(torque_y, -self.limit, self.limit), np.clip(torque_z, -self.limit, self.limit)
         return [torque_x, torque_y, torque_z]
 
 class PositionController:
@@ -180,12 +197,14 @@ class PositionController:
         self.contr_x  = PID(1, 0, 4, 0, dt) 
         self.contr_y  = PID(0.3, 0, 1.2, 0, dt)
         self.contr_z  = PID(0.3, 0, 1.2, 0, dt)
+        self.limit = 0.2 
     
     def __call__(self, x_target, y_target, z_target, position):
-        torque_x = self.contr_x(x_target, position.x)
-        torque_y = self.contr_y(y_target, position.y)
-        torque_z = self.contr_z(z_target, position.z)
-        return [torque_x, torque_y, torque_z]
+        force_x = self.contr_x(x_target, position.x)
+        force_y = self.contr_y(y_target, position.y)
+        force_z = self.contr_z(z_target, position.z)
+        force_x, force_y, force_z = np.clip(force_x, -self.limit, self.limit), np.clip(force_y, -self.limit, self.limit), np.clip(force_z, -self.limit, self.limit)
+        return [force_x, force_y, force_z]
 
 class PID:
     def __init__(self, kp, ki, kd, max_accumulator, dt):

@@ -23,5 +23,6 @@
     <arg name="manager" value="$(arg manager)" />
     <arg name="class" value="ctl/ctl" />
   </include>
+  <!--<node name="astrobee_tf2_publisher" pkg="ctl" type="tf2_publisher.py" />-->
 </launch>
 

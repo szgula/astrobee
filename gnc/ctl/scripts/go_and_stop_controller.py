@@ -35,6 +35,10 @@ class StopAngGoController:
         self.orientation_read = False
         self.position_read = False
         self.initial_pos = 0
+
+        self.target_position = [0, 0, 0]
+        self.target_orientation = [0, 0, 0]
+
         self.last_torque = [0, 0, 0]
         self.last_force = [0, 0, 0]
 
@@ -119,7 +123,7 @@ class StopAngGoController:
                     position = [self._ekf_state.pose.position.x - self.initial_pos.x, 
                                 self._ekf_state.pose.position.y - self.initial_pos.y, 
                                 self._ekf_state.pose.position.z - self.initial_pos.z]
-                    print("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques: {:.2f} {:.2f} {:.2f}, \tforces: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+                    print(":) step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques: {:.2f} {:.2f} {:.2f}, \tforces: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
                                 np.rad2deg(orientation[0]), np.rad2deg(orientation[1]), np.rad2deg(orientation[2]) ,
                                 position[0], position[1], position[2],
                                 self.last_torque[0]*100, self.last_torque[1]*100, self.last_torque[2]*100,
@@ -137,12 +141,12 @@ class StopAngGoController:
 
     def control(self):
         trajectory = [  (1000, (0, 0, 0),        (0, 0, 0)), 
-                        (2000, (-0.8, 0, 0),     (-np.deg2rad(66), 0, 0)), 
-                        (3000, (-0.8, 0.8, 0),   (-np.deg2rad(75), -np.deg2rad(0), 0)),
-                        (4000, (-0.8, 0.8, 0.8), (-np.deg2rad(80), -np.deg2rad(0), 0)),
-                        (5000, (0, 0.8, 0.8),    (-np.deg2rad(85), -np.deg2rad(0), 0)),
-                        (6000, (0, 0, 0.8),      (-np.deg2rad(89), -np.deg2rad(0), 0)),
-                        (7000, (0, 0, 0.8),      (-np.deg2rad(90), -np.deg2rad(10), 0))]
+                        (2000, (-0.8, 0, 0),     (-np.deg2rad(0), 0, -np.deg2rad(66))), 
+                        (3000, (-0.8, 0.8, 0),   (-np.deg2rad(0), 0, -np.deg2rad(75))),
+                        (4000, (-0.8, 0.8, 0.8), (-np.deg2rad(0), 0, -np.deg2rad(80))),
+                        (5000, (0, 0.8, 0.8),    (-np.deg2rad(0), 0, -np.deg2rad(85))),
+                        (6000, (0, 0, 0.8),      (-np.deg2rad(0), 0, -np.deg2rad(89))),
+                        (7000, (0, 0, 0.8),      (-np.deg2rad(0), 0, -np.deg2rad(90)))]
         trajectory_2 = [  (1000, (0, 0, 0),        (0, 0, 0)), 
                         (2000, (-0.8, 0, 0),     (-np.deg2rad(66), np.deg2rad(0), 0)), 
                         (3000, (-0.8, 0.8, 0),   (-np.deg2rad(0),  np.deg2rad(0), 0)),
@@ -164,8 +168,8 @@ class StopAngGoController:
                 dx, dy, dz = 0, 0, 0
                 x_rot, y_rot, z_rot = 0, 0, 0
             torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation)
-            #forces = self.pos_contr(self.initial_pos.x + dx, self.initial_pos.y + dy, self.initial_pos.z + dz, self._ekf_state.pose.position)
-            forces = [0, 0, 0]
+            glob_target_x, glob_target_y, glob_target_z = self.initial_pos.x + dx, self.initial_pos.y + dy, self.initial_pos.z + dz
+            forces = self.pos_contr(glob_target_x, glob_target_y, glob_target_z, self._ekf_state.pose.position)
             control_mode=2
             status=2
 
@@ -179,9 +183,9 @@ class StopAngGoController:
 class OrientationController:
     def __init__(self, dt):
         #self.contr_x  = PID(0.01, 0, 7/4, 0, dt)  # 4,0,7
-        self.contr_x  = PID(1, 0, 7/3, 0, dt)  # 4,0,7
-        self.contr_y  = PID(1, 0, 7/3, 0, dt)
-        self.contr_z  = PID(1, 0, 7/3, 0, dt)
+        self.contr_x  = PID(0.1, 0, 25.0/100, 0, dt)  # 4,0,7
+        self.contr_y  = PID(0.1, 0, 25.0/100, 0, dt)
+        self.contr_z  = PID(0.1, 0, 25.0/100, 0, dt)
         self.limit = 0.2 * 0.1
     
     def __call__(self, x_target, y_target, z_target, orientation):

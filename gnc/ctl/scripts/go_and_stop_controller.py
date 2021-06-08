@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+import tf2_ros
 from ff_msgs.msg import FamCommand
 from ff_msgs.msg import Heartbeat
 from ff_msgs.msg import FlightMode
@@ -20,7 +21,8 @@ class StopAngGoController:
         self.pub_mode = rospy.Publisher(r"/mob/flight_mode", FlightMode, queue_size=5, latch=True)
         self.rate = rospy.Rate(self.rate_contr_hz) # 62.5hz
         #rospy.Subscriber("gnc/ekf", EkfState, self._ekf_callback)
-        rospy.Subscriber("loc/truth/pose", PoseStamped, self._ekf_callback)
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer)
 
         self.n_command = 0
         self.n_heart = 0
@@ -32,15 +34,17 @@ class StopAngGoController:
 
         self.orient_contr = OrientationController(1/self.rate_contr_hz)
         self.pos_contr = PositionController(1/self.rate_contr_hz)
+
         self.orientation_read = False
         self.position_read = False
-        self.initial_pos = 0
+        self.initial_pos = [0, 0, 0]
 
         self.target_position = [0, 0, 0]
-        self.target_orientation = [0, 0, 0]
+        self.target_orientation = [0, 0, 0, 0]
 
         self.last_torque = [0, 0, 0]
         self.last_force = [0, 0, 0]
+        rospy.Subscriber("loc/truth/pose", PoseStamped, self._ekf_callback)
 
 
     def _get_heartbeat_mes(self):
@@ -110,10 +114,22 @@ class StopAngGoController:
         self.orientation_read = True
         self.position_read = True
 
+    def accuare_target(self):
+        try:
+            trans = self.tf_buffer.lookup_transform("truth", "target", rospy.Time())
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            return
+        pos_3dvec = trans.transform.translation
+        orient_quat = trans.transform.rotation
+        self.target_position = [pos_3dvec.x, pos_3dvec.y, pos_3dvec.z]
+        self.target_orientation = [orient_quat.x, orient_quat.y, orient_quat.z, orient_quat.w]
+        
+
     def spin(self):
         print('Starts talking...')
         while not rospy.is_shutdown():
             self.control()
+            self.accuare_target()
             if self.n_command % 25 == 0:
                 self._health_communication()
             if self.n_command % 25 == 0:
@@ -123,11 +139,11 @@ class StopAngGoController:
                     position = [self._ekf_state.pose.position.x - self.initial_pos.x, 
                                 self._ekf_state.pose.position.y - self.initial_pos.y, 
                                 self._ekf_state.pose.position.z - self.initial_pos.z]
-                    print(":) step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques: {:.2f} {:.2f} {:.2f}, \tforces: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+                    '''print(":) step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques: {:.2f} {:.2f} {:.2f}, \tforces: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
                                 np.rad2deg(orientation[0]), np.rad2deg(orientation[1]), np.rad2deg(orientation[2]) ,
                                 position[0], position[1], position[2],
                                 self.last_torque[0]*100, self.last_torque[1]*100, self.last_torque[2]*100,
-                                self.last_force[0]*10, self.last_force[1]*10, self.last_force[2]*10))
+                                self.last_force[0]*10, self.last_force[1]*10, self.last_force[2]*10))'''
                 else:
                     print("step: ", self.n_command / 100.0)
             self.rate.sleep()
@@ -140,36 +156,21 @@ class StopAngGoController:
         
 
     def control(self):
-        trajectory = [  (1000, (0, 0, 0),        (0, 0, 0)), 
-                        (2000, (-0.8, 0, 0),     (-np.deg2rad(0), 0, -np.deg2rad(66))), 
-                        (3000, (-0.8, 0.8, 0),   (-np.deg2rad(0), 0, -np.deg2rad(75))),
-                        (4000, (-0.8, 0.8, 0.8), (-np.deg2rad(0), 0, -np.deg2rad(80))),
-                        (5000, (0, 0.8, 0.8),    (-np.deg2rad(0), 0, -np.deg2rad(85))),
-                        (6000, (0, 0, 0.8),      (-np.deg2rad(0), 0, -np.deg2rad(89))),
-                        (7000, (0, 0, 0.8),      (-np.deg2rad(0), 0, -np.deg2rad(90)))]
-        trajectory_2 = [  (1000, (0, 0, 0),        (0, 0, 0)), 
-                        (2000, (-0.8, 0, 0),     (-np.deg2rad(66), np.deg2rad(0), 0)), 
-                        (3000, (-0.8, 0.8, 0),   (-np.deg2rad(0),  np.deg2rad(0), 0)),
-                        (4000, (-0.8, 0.8, 0.8), (-np.deg2rad(0), -np.deg2rad(66), 0)),
-                        (5000, (0, 0.8, 0.8),    (-np.deg2rad(0), -np.deg2rad(0), 0)),
-                        (6000, (0, 0, 0.8),      (-np.deg2rad(0), -np.deg2rad(0), np.deg2rad(66))),
-                        (7000, (0, 0, 0.8),      (-np.deg2rad(0), -np.deg2rad(0), 0))]
         if self.n_command < 100:
             torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
             forces = [0, 0, 0]
             control_mode=1
             status=3
         else:
-            if self.n_command // 1000 < len(trajectory):
-                untill_t, d_pos, orient_ = trajectory[self.n_command // 1000]
-                dx, dy, dz = d_pos
-                x_rot, y_rot, z_rot = orient_
-            else:
-                dx, dy, dz = 0, 0, 0
-                x_rot, y_rot, z_rot = 0, 0, 0
-            torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation)
-            glob_target_x, glob_target_y, glob_target_z = self.initial_pos.x + dx, self.initial_pos.y + dy, self.initial_pos.z + dz
-            forces = self.pos_contr(glob_target_x, glob_target_y, glob_target_z, self._ekf_state.pose.position)
+            dx, dy, dz = self.target_position
+            orientation = euler_from_quaternion(self.target_orientation)
+            x_rot, y_rot, z_rot = orientation 
+            print("orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}".format( 
+                                np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
+                                dx, dy, dz))
+            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
+            #glob_target_x, glob_target_y, glob_target_z = self.initial_pos.x + dx, self.initial_pos.y + dy, self.initial_pos.z + dz
+            forces = self.pos_contr(dx, dy, dz, self._ekf_state.pose.position)
             control_mode=2
             status=2
 
@@ -204,9 +205,9 @@ class PositionController:
         self.limit = 0.2 
     
     def __call__(self, x_target, y_target, z_target, position):
-        force_x = self.contr_x(x_target, position.x)
-        force_y = self.contr_y(y_target, position.y)
-        force_z = self.contr_z(z_target, position.z)
+        force_x = self.contr_x(x_target, 0)
+        force_y = self.contr_y(y_target, 0)
+        force_z = self.contr_z(z_target, 0)
         force_x, force_y, force_z = np.clip(force_x, -self.limit, self.limit), np.clip(force_y, -self.limit, self.limit), np.clip(force_z, -self.limit, self.limit)
         return [force_x, force_y, force_z]
 

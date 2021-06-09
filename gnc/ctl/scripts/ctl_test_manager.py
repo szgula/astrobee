@@ -14,7 +14,8 @@ class CtlTestManager(object):
     def __init__(self):
         self.tests = [
             SimpleRotationTest(),
-            SimpleTranslationTest()]
+            SimpleTranslationTest(),
+            TranslationWithRotationTest()]
 
         print("starting...")
         rospy.init_node('ctl_test_manager', anonymous=False)
@@ -57,10 +58,11 @@ class CtlTestManager(object):
         rospy.spin()
 
     def get_target(self):
-        if not self.tests[1].done:
-            pos, orient_quat = self.tests[1].get_target_state()
+        current_targe = 2
+        if not self.tests[current_targe].done:
+            pos, orient_quat = self.tests[current_targe].get_target_state()
             print('running test', " step: {} orientation: {:.1f} {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}".format(
-                self.tests[1].step,
+                self.tests[current_targe].step,
                 orient_quat[0], orient_quat[1], orient_quat[2], orient_quat[3],
                 pos[0], pos[1], pos[2]
             ))
@@ -71,7 +73,7 @@ class CtlTestManager(object):
 
     def get_default_pose(self):
         """ returns pos and rot in msg format """
-        pos, orient_quat = [self.initial_pos.x, self.initial_pos.y, self.initial_pos.z], [self.initial_rot.x, self.initial_rot.y, self.initial_rot.z, self.initial_rot.w]
+        pos, orient_quat = [0, 0, 0], [self.initial_rot.x, self.initial_rot.y, self.initial_rot.z, self.initial_rot.w]
         return pos, orient_quat
 
 
@@ -118,6 +120,20 @@ class SimpleTranslationTest(TestCaseClass):
             Action(4000, 4999, (0.4, 0, 0.4), (0, 0 , 0)),
             Action(5000, 5999, (0.4, 0, 0), (0, 0 , 0)),
             Action(6000, 6999, (0, 0, 0), (0, 0 , 0)),
+        ]
+        self.length = 6999
+
+class TranslationWithRotationTest(TestCaseClass):
+    def __init__(self):
+        super(TranslationWithRotationTest, self).__init__()
+        self.actions_sequence = [
+            Action(   0,  999, (0, 0, 0),       (0, 0 , 0)),
+            Action(1000, 1999, (0, 0, 0),       (0, 0 , 70)),
+            Action(2000, 2999, (0, 0.4, 0),     (0, 0 , 70)),
+            Action(3000, 3999, (0, 0.4, 0),     (45, 0 , 70)),
+            Action(4000, 4999, (0.4, 0.4, 0),   (45, 0 , 70)),
+            Action(5000, 5999, (0.4, 0.4, 0.4), (0, 0 , 70)),
+            Action(6000, 6999, (0, 0, 0),       (0, 0 , 0)),
         ]
         self.length = 6999
         

@@ -132,21 +132,15 @@ class StopAngGoController:
             self.accuare_target()
             if self.n_command % 25 == 0:
                 self._health_communication()
-            if self.n_command % 25 == 0:
-                if self.orientation_read:
-                    orientation = self._ekf_state.pose.orientation
-                    orientation = euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w))
-                    position = [self._ekf_state.pose.position.x - self.initial_pos.x, 
-                                self._ekf_state.pose.position.y - self.initial_pos.y, 
-                                self._ekf_state.pose.position.z - self.initial_pos.z]
-                    '''print(":) step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques: {:.2f} {:.2f} {:.2f}, \tforces: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
-                                np.rad2deg(orientation[0]), np.rad2deg(orientation[1]), np.rad2deg(orientation[2]) ,
-                                position[0], position[1], position[2],
-                                self.last_torque[0]*100, self.last_torque[1]*100, self.last_torque[2]*100,
-                                self.last_force[0]*10, self.last_force[1]*10, self.last_force[2]*10))'''
-                else:
-                    print("step: ", self.n_command / 100.0)
             self.rate.sleep()
+
+    def _print_status_informattion(self, dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=False):
+        if enabled:
+            print("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+                        np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
+                        dx, dy, dz,
+                        torques[0]*100, torques[1]*100, torques[2]*100,
+                        forces[0]*10, forces[1]*10, forces[2]*10))
 
     def _health_communication(self):
         self._update_heartbeat_mes()
@@ -165,21 +159,17 @@ class StopAngGoController:
             dx, dy, dz = self.target_position
             orientation = euler_from_quaternion(self.target_orientation)
             x_rot, y_rot, z_rot = orientation 
-            print("orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}".format( 
-                                np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
-                                dx, dy, dz))
-            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
-            #glob_target_x, glob_target_y, glob_target_z = self.initial_pos.x + dx, self.initial_pos.y + dy, self.initial_pos.z + dz
+            torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation)
             forces = self.pos_contr(dx, dy, dz, self._ekf_state.pose.position)
             control_mode=2
             status=2
+            self._print_status_informattion(dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=(self.n_command % 25 == 0))
 
         self._update_command_mes(control_mode=control_mode, status=status, torques=torques, forces=forces)
         self.pub_ctl.publish(self.mes_command)
         self.last_force = forces
         self.last_torque = torques
         
-
 
 class OrientationController:
     def __init__(self, dt):

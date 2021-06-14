@@ -10,10 +10,13 @@ from geometry_msgs.msg import PoseStamped
 from copy import deepcopy
 import numpy as np
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
+import time
 
 
-class StopAngGoController:
+class BasePIDController:
     def __init__(self):
+        rospy.logwarn('Initialise CTL...')
+        time.sleep(2)
         self.rate_contr_hz = 62.5
         rospy.init_node('ctl_node', anonymous=False)
         self.pub_ctl = rospy.Publisher(r"gnc/ctl/command", FamCommand, queue_size=5)
@@ -126,7 +129,7 @@ class StopAngGoController:
         
 
     def spin(self):
-        print('Starts talking...')
+        rospy.logwarn('[ctl] Starts talking...')
         while not rospy.is_shutdown():
             self.control()
             self.accuare_target()
@@ -136,7 +139,7 @@ class StopAngGoController:
 
     def _print_status_informattion(self, dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=False):
         if enabled:
-            print("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+            rospy.loginfo("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
                         np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
                         dx, dy, dz,
                         torques[0]*100, torques[1]*100, torques[2]*100,
@@ -227,7 +230,7 @@ class PID:
 
 if __name__ == '__main__':
     try:
-        node = StopAngGoController()
+        node = BasePIDController()
         node.spin()
     except rospy.ROSInterruptException:
         pass

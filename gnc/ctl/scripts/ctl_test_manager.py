@@ -35,6 +35,7 @@ class CtlTestManager(object):
         self.last_fam = None
         self.last_pmc = None  # propulsion controller
         self.last_target_pos = None
+        self.step = 0
 
         # Loging
         self.log_folder = os.getenv('HOME') + log_path + strftime("%Y%m%d_%H%M")
@@ -52,7 +53,6 @@ class CtlTestManager(object):
         rospy.Subscriber("loc/truth/twist", TwistStamped, self._get_astrobee_vel)
         rospy.Subscriber("gnc/ctl/command", FamCommand, self._get_astrobee_fam)
         rospy.Subscriber("hw/pmc/command", PmcCommand, self._get_astrobee_pmc)
-        print("starting...")
 
     def _get_astrobee_state(self, data):
         pos = data.pose.position
@@ -62,7 +62,7 @@ class CtlTestManager(object):
             self.f_initial_state_acquired = True
             self.initial_pos = pos
             self.initial_rot = rot
-            print("Initialised")
+            rospy.loginfo("Initialised CTL")
 
     def _get_astrobee_vel(self, data):
         self.last_vel = data
@@ -100,6 +100,7 @@ class CtlTestManager(object):
         while True:
             self.generate_and_send_tf_target()
             self.log_test_case()
+            self.step += 1
             self.rate.sleep()
         #rospy.spin()
 
@@ -109,15 +110,19 @@ class CtlTestManager(object):
             if self.ros_bag is None:
                 self.init_new_ros_bag(self.tests[current_test].get_test_name())
             pos, orient_quat = self.tests[current_test].get_target_state()
-            print('running test', " step: {} orientation: {:.1f} {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}".format(
-                self.tests[current_test].step,
-                orient_quat[0], orient_quat[1], orient_quat[2], orient_quat[3],
-                pos[0], pos[1], pos[2]
-            ))
+            type_ = "test {}".format(current_test)
+            step = self.tests[current_test].step
         else:
+            type_ = "default"
             self.close_ros_bag()
-            print('running default')
             pos, orient_quat = self.get_default_pose()
+            step = 0
+        if self.step % 100 == 0:
+            rospy.loginfo("running {}, step: {} orientation: {:.1f} {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}".format(
+                    type_, step,
+                    orient_quat[0], orient_quat[1], orient_quat[2], orient_quat[3],
+                    pos[0], pos[1], pos[2]
+                ))
         return pos, orient_quat
 
     def get_default_pose(self):
@@ -210,7 +215,7 @@ class SimpleRotationTest(TestCaseClass):
 class SimpleTranslationTest(TestCaseClass):
     def __init__(self, value=0.4):
         super(SimpleTranslationTest, self).__init__()
-        self.test_case_name = "Simple_traslation_{}m".format(value)
+        self.test_case_name = "Simple_traslation_{}cm".format(int(value*100))
         self.actions_sequence = [
             Action(   0,  999, (0, 0, 0), (0, 0 , 0)),
             Action(1000, 1999, (0, value, 0), (0, 0 , 0)),
@@ -249,7 +254,7 @@ class Action(object):
         return self.t_0 <= t_ and self.t_end >= t_
     def get_quat(self):
         """return list [x, y, z, w]"""
-        rot_rad = [np.deg2rad(a_deg) for a_deg in self.rot]
+        rot_rad = [np.deg2rad(a_deg) for a_deg in self.rot]  # How about np.deg2rad(np.clip(a_deg, -89, 89)) ?
         return quaternion_from_euler(*rot_rad)
 
 

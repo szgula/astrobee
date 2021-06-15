@@ -55,13 +55,10 @@ class ModelPrintControl : public ModelPlugin {
 
 
 
-
     this->world_ = this->model->GetWorld();
     this->node_ = gazebo::transport::NodePtr(new gazebo::transport::Node());
     this->node_->Init(world_->GetName());
     this->pub_visual_ = this->node_->Advertise<gazebo::msgs::Visual>("~/visual");
-
-
 
 
 
@@ -96,9 +93,8 @@ class ModelPrintControl : public ModelPlugin {
     this->rosQueueThread =
         std::thread(std::bind(&ModelPrintControl::QueueThread, this));
 
-    //this->pub_visual_ = this->rosNode->advertise<gazebo::msgs::Visual>("/visual", 1);
-    //ros::Publisher chatter_pub = this->rosNode->advertise<gazebo::msgs::Visual>("chatter", 1000);
 
+    this->print_status = this->rosNode->advertise<std_msgs::Float32>("print_status", 10);
 
 
     ROS_WARN("Loaded ModelPrintControl Plugin with parent...%s, Print Controll Started ",
@@ -108,8 +104,10 @@ class ModelPrintControl : public ModelPlugin {
   // Called by the world update start event
  public:
   void OnUpdate() {
-    ROS_DEBUG("Update Tick...");
     pub_visual_->Publish(visualMsg);
+    std_msgs::Float32 msg;
+    msg.data = this->length;
+    this->print_status.publish(msg);
   }
 
  public:
@@ -156,7 +154,6 @@ class ModelPrintControl : public ModelPlugin {
 
     ignition::math::Pose3d visual_pos(length / 2.0 + 1.0, 0, 0, 0, 1.57075, 0);
     gazebo::msgs::Pose* pose_visual_mes = new gazebo::msgs::Pose{gazebo::msgs::Convert(visual_pos)};
-    //visualMsg.set_allocated_pose(pose_visual_mes);
 
     pub_visual_->Publish(visualMsg);
   
@@ -176,12 +173,7 @@ class ModelPrintControl : public ModelPlugin {
     relativePose.pos.z = 0.0;
     math::Pose newRelativePose(visual_orgin_x, 0, 0, 0, 0, 0);
     
-    //this->link_to_print->SetRelativePose(relativePose);
-    //ROS_WARN("relative pos >> %f, inertial: >> %f %f %f", relativePose.pos.x, inertia_x, inertia_y, inertia_z);
-    //this->link_to_print->SetVisualPose(1, visual_pos);
-    //this->link_to_print->Update();
     this->print_joint->SetPosition(0, this->length / 2);
-    //this->print_joint->SetVelocity(0, 0.0);
     this->print_joint->Update();
     this->model->Update();
   }
@@ -203,12 +195,12 @@ class ModelPrintControl : public ModelPlugin {
 
   // Pointer to the model
  private:
-    //gazebo::event::ConnectionPtr updateConnection;
     gazebo::transport::NodePtr node_;
     gazebo::transport::PublisherPtr pub_visual_;    
     gazebo::physics::WorldPtr world_;
     physics::ModelPtr model;
     gazebo::msgs::Visual visualMsg;
+    ros::Publisher print_status;
 
   // Pointer to the update event connection
  private:
@@ -231,8 +223,6 @@ class ModelPrintControl : public ModelPlugin {
   /// \brief A ROS subscriber
  private:
   ros::Subscriber rosSub;
-  //gazebo::transport::PublisherPtr pub_visual_;
-  //ros::Publisher pub_visual_;
   /// \brief A ROS callbackqueue that helps process messages
  private:
   ros::CallbackQueue rosQueue;

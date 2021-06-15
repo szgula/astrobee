@@ -10,6 +10,7 @@ import geometry_msgs.msg
 from ff_msgs.msg import FamCommand
 from ff_hw_msgs.msg import PmcCommand
 from std_msgs.msg import Float32
+from std_srvs.srv import Empty
 
 import numpy as np
 from time import strftime
@@ -45,6 +46,7 @@ class CtlTestManager(object):
         self.last_vel = None
         self.last_fam = None
         self.last_pmc = None  # propulsion controller
+        self.last_print = None
         self.last_target_pos = None
         self.step = 0
 
@@ -60,11 +62,15 @@ class CtlTestManager(object):
         self.msg = geometry_msgs.msg.TransformStamped()
         self.msg.header.frame_id = "world"
         self.msg.child_frame_id = "target"
+        rospy.wait_for_service('/gazebo/reset_simulation')
+        self.reset_world = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
         rospy.Subscriber("loc/truth/pose", PoseStamped, self._get_astrobee_state)
         rospy.Subscriber("loc/truth/twist", TwistStamped, self._get_astrobee_vel)
         rospy.Subscriber("gnc/ctl/command", FamCommand, self._get_astrobee_fam)
         rospy.Subscriber("hw/pmc/command", PmcCommand, self._get_astrobee_pmc)
+        rospy.Subscriber("/model_print_controler_rosnode/print_status", Float32, self._get_print_length)
         self.pub_print = rospy.Publisher(r"/model_print", Float32, queue_size=5)
+        
 
     def _get_astrobee_state(self, data):
         pos = data.pose.position
@@ -86,6 +92,9 @@ class CtlTestManager(object):
     def _get_astrobee_pmc(self, data):
         self.last_pmc = data
 
+    def _get_print_length(self, data):
+        self.last_print = data
+
     def generate_and_send_tf_target_and_print(self):
         if self.f_initial_state_acquired:
             target_pos, target_orient, print_comp = self.get_target()
@@ -98,7 +107,7 @@ class CtlTestManager(object):
             self.msg.transform.rotation.z = target_orient[2]
             self.msg.transform.rotation.w = target_orient[3]
             self.br.sendTransform(self.msg)
-            if print_comp > 0:
+            if print_comp != 0:
                 self.pub_print.publish(Float32(print_comp))
 
             self.last_target_pos = deepcopy(self.last_pos)
@@ -113,11 +122,16 @@ class CtlTestManager(object):
 
     def spin(self):
         while True:
-            self.generate_and_send_tf_target_and_print()
-            self.log_test_case()
-            self.step += 1
-            self.rate.sleep()
-        #rospy.spin()
+            try:
+               self.time_step()
+            except rospy.ROSTimeMovedBackwardsException:
+                rospy.logerr("ROS Time Backwards! Just ignore the exception!")
+
+    def time_step(self):
+        self.generate_and_send_tf_target_and_print()
+        self.log_test_case()
+        self.step += 1
+        self.rate.sleep()
 
     def get_target(self):
         current_test = self.current_test
@@ -132,6 +146,10 @@ class CtlTestManager(object):
             self.close_ros_bag()
             pos, orient_quat = self.get_default_pose()
             print_comp = 0
+            if self.time_since_last_test_ended == 0:
+                # This should reset the siumlation
+                self.reset_world()
+                self.pub_print.publish(Float32(-1.0))
             step = self.time_since_last_test_ended
             self.time_since_last_test_ended +=1
             if (self.time_since_last_test_ended > self.time_between_tests) and (current_test < len(self.tests) - 1):
@@ -169,6 +187,8 @@ class CtlTestManager(object):
                 self.ros_bag.write('hw/pmc/command', self.last_pmc)
             if self.last_target_pos is not None:
                 self.ros_bag.write('loc/reference', self.last_target_pos)
+            if self.last_print is not None:
+                self.ros_bag.write('/model_print_controler_rosnode/print_status', self.last_print)
             
         # 1) reference
         # 2) pos
@@ -301,5 +321,10 @@ if __name__ == '__main__':
     try:
         node = CtlTestManager()
         node.spin()
-    except rospy.ROSInterruptException:
-        pass
+    except rospy.ROSTimeMovedBackwardsException:
+        rospy.logerr("ROS Time Backwards! Just ignore the exception!")
+    except rospy.ROSInterruptException as e:
+        rospy.logerr("ROS Interrupt!! {}".format(str(e)))
+    except Exception as e:
+        rospy.logerr("ROS Time Backwards! Just ignore the exception! {}".format(str(e)))
+        print(str(e))

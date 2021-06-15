@@ -143,7 +143,7 @@ class BasePIDController:
 
     def _print_status_informattion(self, dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=False):
         if enabled:
-            rospy.logwarn("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+            rospy.logwarn("step: {:.2f} \t orient: {:.1f} {:.1f} {:.1f} \t pos: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
                         np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
                         dx, dy, dz,
                         torques[0]*100, torques[1]*100, torques[2]*100,
@@ -188,7 +188,7 @@ class OrientationController:
     
     def __call__(self, x_target, y_target, z_target, orientation):
         orientation = list(euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w)))
-        #print("orientation controller -> target: {:.2f} {:.2f} {:.2f}, orientation: {:.2f} {:.2f} {:.2f}".format(*np.rad2deg([x_target, y_target, z_target] + orientation)) )
+        #print("orientation controller -> target: {:.2f} {:.2f} {:.2f}, orient: {:.2f} {:.2f} {:.2f}".format(*np.rad2deg([x_target, y_target, z_target] + orientation)) )
         torque_x = self.contr_x(x_target, 0)
         torque_y = self.contr_y(y_target, 0)
         torque_z = self.contr_z(z_target, 0)
@@ -239,13 +239,9 @@ def main():
         except rospy.ROSTimeMovedBackwardsException:
             node.tf_buffer.clear()
             rospy.logerr("ROS Time Backwards! Just ignore the exception!")
-            print("This is my error")
         except rospy.ROSInterruptException:
             return
-        except Exception as e:
-            print("This is my error 2")
-            print str(e)
-            return
+
 
 
 if __name__ == '__main__':

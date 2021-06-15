@@ -292,13 +292,13 @@ def main():
 
     # Base PID with 30cm print
     samples = [
-        (r'/Volumes/ros_logs/20210615_0955', 'Rotation_66deg_print_step_100um_print_from_0'),
-        (r'/Volumes/ros_logs/20210615_0955', 'Simple_rotation_66deg_print_0cm'),
-        (r'/Volumes/ros_logs/20210615_0955', 'Simple_rotation_66deg_print_60cm'),
-        (r'/Volumes/ros_logs/20210615_0955', 'Simple_translation_40cm_print_0cm'),
-        (r'/Volumes/ros_logs/20210615_0955', 'Simple_translation_40cm_print_60cm'),
-        (r'/Volumes/ros_logs/20210615_0955', 'Translation_with_rotation_print_0cm'),
-        (r'/Volumes/ros_logs/20210615_0955', 'Translation_with_rotation_print_60cm')]
+        (r'/Volumes/ros_logs/20210615_1713', 'Rotation_66deg_print_step_100um_print_from_0'),
+        (r'/Volumes/ros_logs/20210615_1713', 'Simple_rotation_66deg_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_1713', 'Simple_rotation_66deg_print_60cm'),
+        (r'/Volumes/ros_logs/20210615_1713', 'Simple_translation_40cm_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_1713', 'Simple_translation_40cm_print_60cm'),
+        (r'/Volumes/ros_logs/20210615_1713', 'Translation_with_rotation_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_1713', 'Translation_with_rotation_print_60cm')]
     #sample = samples[2]
     for folder_, name in samples:
         print(f"Done: {name}")

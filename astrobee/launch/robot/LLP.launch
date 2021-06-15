@@ -16,6 +16,7 @@
 <!-- permissions and limitations under the License.                          -->
 
 <launch>
+  <param name="/use_sime_time" value="true"/>
 
   <!-- Additional options -->
   <arg name="drivers"/>                       <!-- Should we launch drivers? -->

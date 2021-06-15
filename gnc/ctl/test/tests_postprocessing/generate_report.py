@@ -122,13 +122,15 @@ samples_base_PID_no_print = [
 
 # Base PID with 30cm print
 samples = [
-        #('plots', 'Simple_traslation_40cm'),
-        (r'/Volumes/ros_logs/20210613_2118', 'Simple_rotation_66deg'),
-        (r'/Volumes/ros_logs/20210613_2118', 'Simple_traslation_40cm'),
-        (r'/Volumes/ros_logs/20210613_2118', 'Translation_with_rotation')
-    ]
+        (r'/Volumes/ros_logs/20210615_0955', 'Rotation_66deg_print_step_100um_print_from_0'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_rotation_66deg_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_rotation_66deg_print_60cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_translation_40cm_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_translation_40cm_print_60cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Translation_with_rotation_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Translation_with_rotation_print_60cm')]
 
 pdf = PDF()
 for folder_, test_name in samples:
     pdf.print_page(f'{folder_}/kpi_extracted/', test_name)
-pdf.output('Controller_report_30com_print_base_PID.pdf', 'F')
+pdf.output('Controller_report_7_tasks_base_PID3.pdf', 'F')

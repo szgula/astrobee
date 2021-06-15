@@ -252,24 +252,7 @@ class CtlPostprocessing:
         plt.clf()
 
 
-def main():
-    samples_base_PID_no_print = [
-        # ('plots', 'Simple_traslation_40cm'),
-        (r'/Volumes/ros_logs/20210611_1053', 'Simple_rotation_66deg'),
-        (r'/Volumes/ros_logs/20210611_1055', 'Simple_traslation_40cm'),
-        (r'/Volumes/ros_logs/20210611_1110', 'Translation_with_rotation')
-    ]
-
-    # Base PID with 30cm print
-    samples = [
-        # ('plots', 'Simple_traslation_40cm'),
-        (r'/Volumes/ros_logs/20210613_2118', 'Simple_rotation_66deg'),
-        (r'/Volumes/ros_logs/20210613_2118', 'Simple_traslation_40cm'),
-        (r'/Volumes/ros_logs/20210613_2118', 'Translation_with_rotation')
-    ]
-    sample = samples[2]
-    name = sample[1]
-    folder_ = sample[0]
+def generate_kpi_wrapper(name, folder_):
     path = f'{folder_}/{name}.bag'
     kpi_extraction_folder = f'{folder_}/kpi_extracted'
     os.makedirs(kpi_extraction_folder, exist_ok=True)
@@ -297,6 +280,29 @@ def main():
         pickle.dump(kpi_aggregated, f)
 
     return ctl_tests
+
+
+def main():
+    samples_base_PID_no_print = [
+        # ('plots', 'Simple_traslation_40cm'),
+        (r'/Volumes/ros_logs/20210611_1053', 'Simple_rotation_66deg'),
+        (r'/Volumes/ros_logs/20210611_1055', 'Simple_traslation_40cm'),
+        (r'/Volumes/ros_logs/20210611_1110', 'Translation_with_rotation')
+    ]
+
+    # Base PID with 30cm print
+    samples = [
+        (r'/Volumes/ros_logs/20210615_0955', 'Rotation_66deg_print_step_100um_print_from_0'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_rotation_66deg_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_rotation_66deg_print_60cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_translation_40cm_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Simple_translation_40cm_print_60cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Translation_with_rotation_print_0cm'),
+        (r'/Volumes/ros_logs/20210615_0955', 'Translation_with_rotation_print_60cm')]
+    #sample = samples[2]
+    for folder_, name in samples:
+        print(f"Done: {name}")
+        generate_kpi_wrapper(name, folder_)
 
 
 if __name__ == "__main__":

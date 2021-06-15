@@ -121,6 +121,10 @@ class BasePIDController:
         try:
             trans = self.tf_buffer.lookup_transform("truth", "target", rospy.Time())
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            #rospy.logwarn('[ctl] get tf transformation exception')
+            #self.tf_buffer.clear()
+            self.target_position = [0, 0, 0]
+            self.target_orientation = [0, 0, 0, 1]
             return
         pos_3dvec = trans.transform.translation
         orient_quat = trans.transform.rotation
@@ -139,7 +143,7 @@ class BasePIDController:
 
     def _print_status_informattion(self, dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=False):
         if enabled:
-            rospy.loginfo("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+            rospy.logwarn("step: {:.2f} \t orientation: {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
                         np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
                         dx, dy, dz,
                         torques[0]*100, torques[1]*100, torques[2]*100,
@@ -177,9 +181,9 @@ class BasePIDController:
 class OrientationController:
     def __init__(self, dt):
         #self.contr_x  = PID(0.01, 0, 7/4, 0, dt)  # 4,0,7
-        self.contr_x  = PID(0.1, 0, 25.0/100, 0, dt)  # 4,0,7
-        self.contr_y  = PID(0.1, 0, 25.0/100, 0, dt)
-        self.contr_z  = PID(0.1, 0, 25.0/100, 0, dt)
+        self.contr_x  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 4,0,7
+        self.contr_y  = PID(0.075, 0.0005, 18.0/100, 20, dt)
+        self.contr_z  = PID(0.075, 0.0005, 18.0/100, 20, dt)
         self.limit = 0.2 * 0.1
     
     def __call__(self, x_target, y_target, z_target, orientation):
@@ -193,9 +197,9 @@ class OrientationController:
 
 class PositionController:
     def __init__(self, dt):
-        self.contr_x  = PID(1, 0, 4, 0, dt) 
-        self.contr_y  = PID(0.3, 0, 1.2, 0, dt)
-        self.contr_z  = PID(0.3, 0, 1.2, 0, dt)
+        self.contr_x  = PID(0.23, 0.005, 0.9, 20, dt) 
+        self.contr_y  = PID(0.23, 0.005, 0.9, 20, dt)
+        self.contr_z  = PID(0.23, 0.005, 0.9, 20, dt)
         self.limit = 0.2 
     
     def __call__(self, x_target, y_target, z_target, position):
@@ -227,10 +231,22 @@ class PID:
         return p + i + d
 
 
+def main():
+    while True:
+        try:
+            node = BasePIDController()
+            node.spin()
+        except rospy.ROSTimeMovedBackwardsException:
+            node.tf_buffer.clear()
+            rospy.logerr("ROS Time Backwards! Just ignore the exception!")
+            print("This is my error")
+        except rospy.ROSInterruptException:
+            return
+        except Exception as e:
+            print("This is my error 2")
+            print str(e)
+            return
+
 
 if __name__ == '__main__':
-    try:
-        node = BasePIDController()
-        node.spin()
-    except rospy.ROSInterruptException:
-        pass
+    main()

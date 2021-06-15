@@ -114,10 +114,20 @@ class ModelPrintControl : public ModelPlugin {
 
  public:
   void PrintStep(const double &_length_step) {
-    this->print_scale += _length_step / this->init_length;
-    this->length += _length_step;
-    double _mass_step = _length_step * this->cross_density;
-    this->print_mass += _mass_step;
+    if (_length_step < 0.0f)
+    {
+      this->print_scale = 1.0;
+      this->length = this->init_length;
+      this->print_mass = 0.0001;
+      ROS_WARN("reset print; scale:  %f len:  %f  mass:  %f", 
+                    this->print_scale, this->length, this->print_mass);
+    } 
+    else {
+      this->print_scale += _length_step / this->init_length;
+      this->length += _length_step;
+      double _mass_step = _length_step * this->cross_density;
+      this->print_mass += _mass_step;
+    }
     //ROS_WARN("New mass received ");
     //ROS_WARN("change following link: %s ", this->model->GetName().c_str());
     // Changing the mass
@@ -144,7 +154,7 @@ class ModelPrintControl : public ModelPlugin {
     visualMsg.set_allocated_scale(scale_factor);
     
 
-    ignition::math::Pose3d visual_pos(length / 2 + 1, 0, 0, 0, 1.57075, 0);
+    ignition::math::Pose3d visual_pos(length / 2.0 + 1.0, 0, 0, 0, 1.57075, 0);
     gazebo::msgs::Pose* pose_visual_mes = new gazebo::msgs::Pose{gazebo::msgs::Convert(visual_pos)};
     //visualMsg.set_allocated_pose(pose_visual_mes);
 
@@ -157,10 +167,10 @@ class ModelPrintControl : public ModelPlugin {
 
     math::Pose relativePose = this->link_to_print->GetRelativePose();
     math::Vector3 rotEuler = relativePose.rot.GetAsEuler();
-    ROS_WARN("relative pose >> %f %f %f rot >> %f %f %f, new pose %f, length %f", 
+    /*ROS_WARN("relative pose >> %f %f %f rot >> %f %f %f, new pose %f, length %f", 
                     relativePose.pos.x, relativePose.pos.y, relativePose.pos.z, 
                     rotEuler.x, rotEuler.y, rotEuler.z,
-                    relativePose.pos.x +  _length_step / 2, this->length);
+                    relativePose.pos.x +  _length_step / 2, this->length);*/
     relativePose.pos.x = visual_orgin_x;
     relativePose.pos.y = 0.0;
     relativePose.pos.z = 0.0;

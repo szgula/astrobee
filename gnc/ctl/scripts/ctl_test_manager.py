@@ -9,6 +9,7 @@ from tf.transformations import quaternion_from_euler, euler_from_quaternion
 import geometry_msgs.msg
 from ff_msgs.msg import FamCommand
 from ff_hw_msgs.msg import PmcCommand
+from std_msgs.msg import Float32
 
 import numpy as np
 from time import strftime
@@ -20,9 +21,18 @@ class CtlTestManager(object):
     def __init__(self, log_path=r'/ros_logs/'):
         # Test cases definition
         self.tests = [
-            SimpleRotationTest(),
-            SimpleTranslationTest(),
-            TranslationWithRotationTest()]
+            SimpleRotationTest(print_length_cm=0),
+            SimpleTranslationTest(print_length_cm=0),
+            TranslationWithRotationTest(print_length_cm=0),
+            RotationWhilePriningTest(print_length_cm=0),
+            
+            SimpleRotationTest(print_length_cm=60),
+            SimpleTranslationTest(print_length_cm=60),
+            TranslationWithRotationTest(print_length_cm=60)]
+        
+        self.current_test = 0
+        self.time_since_last_test_ended = 0
+        self.time_between_tests = 1000
         
         # Internal properties & state & data
         self.rate_contr_hz = 62.5
@@ -30,6 +40,7 @@ class CtlTestManager(object):
         temp_mes = PoseStamped()
         self.initial_pos = temp_mes.pose.position
         self.initial_rot = temp_mes.pose.orientation
+        self.initial_rot.w = 1
         self.last_pos = None
         self.last_vel = None
         self.last_fam = None
@@ -53,6 +64,7 @@ class CtlTestManager(object):
         rospy.Subscriber("loc/truth/twist", TwistStamped, self._get_astrobee_vel)
         rospy.Subscriber("gnc/ctl/command", FamCommand, self._get_astrobee_fam)
         rospy.Subscriber("hw/pmc/command", PmcCommand, self._get_astrobee_pmc)
+        self.pub_print = rospy.Publisher(r"/model_print", Float32, queue_size=5)
 
     def _get_astrobee_state(self, data):
         pos = data.pose.position
@@ -60,8 +72,9 @@ class CtlTestManager(object):
         self.last_pos = data
         if not self.f_initial_state_acquired:
             self.f_initial_state_acquired = True
+            # keep this as all 0
             self.initial_pos = pos
-            self.initial_rot = rot
+            #self.initial_rot = rot
             rospy.loginfo("Initialised CTL")
 
     def _get_astrobee_vel(self, data):
@@ -73,9 +86,9 @@ class CtlTestManager(object):
     def _get_astrobee_pmc(self, data):
         self.last_pmc = data
 
-    def generate_and_send_tf_target(self):
+    def generate_and_send_tf_target_and_print(self):
         if self.f_initial_state_acquired:
-            target_pos, target_orient = self.get_target()
+            target_pos, target_orient, print_comp = self.get_target()
             self.msg.header.stamp = rospy.Time.now()
             self.msg.transform.translation.x = self.initial_pos.x - target_pos[0]
             self.msg.transform.translation.y = self.initial_pos.y - target_pos[1]
@@ -85,6 +98,8 @@ class CtlTestManager(object):
             self.msg.transform.rotation.z = target_orient[2]
             self.msg.transform.rotation.w = target_orient[3]
             self.br.sendTransform(self.msg)
+            if print_comp > 0:
+                self.pub_print.publish(Float32(print_comp))
 
             self.last_target_pos = deepcopy(self.last_pos)
             self.last_target_pos.pose.position.x = self.msg.transform.translation.x
@@ -98,32 +113,38 @@ class CtlTestManager(object):
 
     def spin(self):
         while True:
-            self.generate_and_send_tf_target()
+            self.generate_and_send_tf_target_and_print()
             self.log_test_case()
             self.step += 1
             self.rate.sleep()
         #rospy.spin()
 
     def get_target(self):
-        current_test = 1
-        if not self.tests[current_test].done:
+        current_test = self.current_test
+        if (current_test < len(self.tests)) and (not self.tests[current_test].done):
             if self.ros_bag is None:
                 self.init_new_ros_bag(self.tests[current_test].get_test_name())
-            pos, orient_quat = self.tests[current_test].get_target_state()
+            pos, orient_quat, print_comp = self.tests[current_test].get_target_state()
             type_ = "test {}".format(current_test)
             step = self.tests[current_test].step
         else:
             type_ = "default"
             self.close_ros_bag()
             pos, orient_quat = self.get_default_pose()
-            step = 0
+            print_comp = 0
+            step = self.time_since_last_test_ended
+            self.time_since_last_test_ended +=1
+            if (self.time_since_last_test_ended > self.time_between_tests) and (current_test < len(self.tests) - 1):
+                self.time_since_last_test_ended = 0
+                self.current_test += 1
+        
         if self.step % 100 == 0:
             rospy.loginfo("running {}, step: {} orientation: {:.1f} {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}".format(
                     type_, step,
                     orient_quat[0], orient_quat[1], orient_quat[2], orient_quat[3],
                     pos[0], pos[1], pos[2]
                 ))
-        return pos, orient_quat
+        return pos, orient_quat, print_comp
 
     def get_default_pose(self):
         """ returns pos and rot in msg format """
@@ -190,17 +211,17 @@ class TestCaseClass(object):
         self.step += 1
         if self.step >= self.length:
             self.done = True
-        return pos, orientation_quat
+        return pos, orientation_quat, current_target.print_speed
 
     def get_test_name(self):
         return self.test_case_name
     
     
 class SimpleRotationTest(TestCaseClass):
-    def __init__(self, value=66):
+    def __init__(self, value=66, print_length_cm=0):
         super(SimpleRotationTest, self).__init__()
         self.rotation_value = value
-        self.test_case_name = "Simple_rotation_{}deg".format(value)
+        self.test_case_name = "Simple_rotation_{}deg_print_{}cm".format(value, print_length_cm)
         self.actions_sequence = [
             Action(   0,  999, (0, 0, 0), (0, 0 , 0)),
             Action(1000, 1999, (0, 0, 0), (value, 0 , 0)),
@@ -213,9 +234,9 @@ class SimpleRotationTest(TestCaseClass):
         self.length = 6999
 
 class SimpleTranslationTest(TestCaseClass):
-    def __init__(self, value=0.4):
+    def __init__(self, value=0.4, print_length_cm=0):
         super(SimpleTranslationTest, self).__init__()
-        self.test_case_name = "Simple_traslation_{}cm".format(int(value*100))
+        self.test_case_name = "Simple_translation_{}cm_print_{}cm".format(int(value*100), print_length_cm)
         self.actions_sequence = [
             Action(   0,  999, (0, 0, 0), (0, 0 , 0)),
             Action(1000, 1999, (0, value, 0), (0, 0 , 0)),
@@ -228,9 +249,9 @@ class SimpleTranslationTest(TestCaseClass):
         self.length = 6999
 
 class TranslationWithRotationTest(TestCaseClass):
-    def __init__(self):
+    def __init__(self, print_length_cm=0):
         super(TranslationWithRotationTest, self).__init__()
-        self.test_case_name = "Translation_with_rotation"
+        self.test_case_name = "Translation_with_rotation_print_{}cm".format(print_length_cm)
         self.actions_sequence = [
             Action(   0,  999, (0, 0, 0),       (0, 0 , 0)),
             Action(1000, 1999, (0, 0, 0),       (0, 0 , 70)),
@@ -241,15 +262,33 @@ class TranslationWithRotationTest(TestCaseClass):
             Action(6000, 6999, (0, 0, 0),       (0, 0 , 0)),
         ]
         self.length = 6999
+
+
+class RotationWhilePriningTest(TestCaseClass):
+    def __init__(self, value=66, prining_speed=0.1/1000, print_length_cm=0):
+        super(RotationWhilePriningTest, self).__init__()
+        self.rotation_value = value
+        self.test_case_name = "Rotation_{}deg_print_step_{}um_print_from_{}".format(value, int(prining_speed*10**6), print_length_cm)
+        self.actions_sequence = [
+            Action(   0,  999, (0, 0, 0), (0, 0 , 0)),
+            Action(1000, 1999, (0, 0, 0), (value, 0 , 0), prining_speed),
+            Action(2000, 2999, (0, 0, 0), (0, 0 , 0), prining_speed),
+            Action(3000, 3999, (0, 0, 0), (0, value , 0), prining_speed),
+            Action(4000, 4999, (0, 0, 0), (0, 0 , 0), prining_speed),
+            Action(5000, 5999, (0, 0, 0), (0, 0 , value), prining_speed),
+            Action(6000, 6999, (0, 0, 0), (0, 0 , 0), prining_speed),
+        ]
+        self.length = 6999
         
 
     
 class Action(object):
-    def __init__(self, t_beg, t_end, pos, rot):
+    def __init__(self, t_beg, t_end, pos, rot, print_speed=0):
         self.t_0 = t_beg
         self.t_end = t_end
         self.pos = pos
         self.rot = rot
+        self.print_speed = print_speed
     def __contains__(self, t_):
         return self.t_0 <= t_ and self.t_end >= t_
     def get_quat(self):

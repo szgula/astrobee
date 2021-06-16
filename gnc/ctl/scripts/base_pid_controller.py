@@ -143,7 +143,7 @@ class BasePIDController:
 
     def _print_status_informattion(self, dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=False):
         if enabled:
-            rospy.logwarn("step: {:.2f} \t orient: {:.1f} {:.1f} {:.1f} \t pos: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, 
+            rospy.logwarn("step: {:.2f} \t time: {} \t orient: {:.1f} {:.1f} {:.1f} \t pos: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, rospy.get_rostime(),
                         np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
                         dx, dy, dz,
                         torques[0]*100, torques[1]*100, torques[2]*100,

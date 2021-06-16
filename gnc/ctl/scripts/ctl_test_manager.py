@@ -25,6 +25,7 @@ class CtlTestManager(object):
             SimpleRotationTest(print_length_cm=0),
             SimpleTranslationTest(print_length_cm=0),
             TranslationWithRotationTest(print_length_cm=0),
+
             RotationWhilePriningTest(print_length_cm=0),
             
             SimpleRotationTest(print_length_cm=60),
@@ -157,8 +158,8 @@ class CtlTestManager(object):
                 self.current_test += 1
         
         if self.step % 100 == 0:
-            rospy.loginfo("running {}, step: {} orientation: {:.1f} {:.1f} {:.1f} {:.1f} \t position: {:.2f} {:.2f} {:.2f}".format(
-                    type_, step,
+            rospy.loginfo("running {}, step: {}, time {}, {}, \t orient: {:.1f} {:.1f} {:.1f} {:.1f} \t pos: {:.2f} {:.2f} {:.2f}".format(
+                    type_, step, rospy.Time.now().to_sec(), rospy.get_rostime(),
                     orient_quat[0], orient_quat[1], orient_quat[2], orient_quat[3],
                     pos[0], pos[1], pos[2]
                 ))
@@ -238,65 +239,69 @@ class TestCaseClass(object):
     
     
 class SimpleRotationTest(TestCaseClass):
-    def __init__(self, value=66, print_length_cm=0):
+    def __init__(self, value=66, printing_speed=0, print_length_cm=0):
         super(SimpleRotationTest, self).__init__()
         self.rotation_value = value
         self.test_case_name = "Simple_rotation_{}deg_print_{}cm".format(value, print_length_cm)
         self.actions_sequence = [
-            Action(   0,  999, (0, 0, 0), (0, 0 , 0)),
-            Action(1000, 1999, (0, 0, 0), (value, 0 , 0)),
-            Action(2000, 2999, (0, 0, 0), (0, 0 , 0)),
-            Action(3000, 3999, (0, 0, 0), (0, value , 0)),
-            Action(4000, 4999, (0, 0, 0), (0, 0 , 0)),
-            Action(5000, 5999, (0, 0, 0), (0, 0 , value)),
-            Action(6000, 6999, (0, 0, 0), (0, 0 , 0)),
+            Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
+            Action(   1,  999, (0, 0, 0), (0, 0 , 0)),
+            Action(1000, 1999, (0, 0, 0), (value, 0 , 0), printing_speed),
+            Action(2000, 2999, (0, 0, 0), (0, 0 , 0), printing_speed),
+            Action(3000, 3999, (0, 0, 0), (0, value , 0), printing_speed),
+            Action(4000, 4999, (0, 0, 0), (0, 0 , 0), printing_speed),
+            Action(5000, 5999, (0, 0, 0), (0, 0 , value), printing_speed),
+            Action(6000, 6999, (0, 0, 0), (0, 0 , 0), printing_speed),
         ]
         self.length = 6999
 
 class SimpleTranslationTest(TestCaseClass):
-    def __init__(self, value=0.4, print_length_cm=0):
+    def __init__(self, value=0.4, printing_speed=0, print_length_cm=0):
         super(SimpleTranslationTest, self).__init__()
         self.test_case_name = "Simple_translation_{}cm_print_{}cm".format(int(value*100), print_length_cm)
         self.actions_sequence = [
-            Action(   0,  999, (0, 0, 0), (0, 0 , 0)),
-            Action(1000, 1999, (0, value, 0), (0, 0 , 0)),
-            Action(2000, 2999, (0, value, value), (0, 0 , 0)),
-            Action(3000, 3999, (value, value, value), (0, 0 , 0)),
-            Action(4000, 4999, (value, 0, value), (0, 0 , 0)),
-            Action(5000, 5999, (value, 0, 0), (0, 0 , 0)),
-            Action(6000, 6999, (0, 0, 0), (0, 0 , 0)),
+            Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
+            Action(   1,  999, (0, 0, 0), (0, 0 , 0)),
+            Action(1000, 1999, (0, value, 0), (0, 0 , 0), printing_speed),
+            Action(2000, 2999, (0, value, value), (0, 0 , 0), printing_speed),
+            Action(3000, 3999, (value, value, value), (0, 0 , 0), printing_speed),
+            Action(4000, 4999, (value, 0, value), (0, 0 , 0), printing_speed),
+            Action(5000, 5999, (value, 0, 0), (0, 0 , 0), printing_speed),
+            Action(6000, 6999, (0, 0, 0), (0, 0 , 0), printing_speed),
         ]
         self.length = 6999
 
 class TranslationWithRotationTest(TestCaseClass):
-    def __init__(self, print_length_cm=0):
+    def __init__(self, translation_value=0.4, rotation_value=50, printing_speed=0, print_length_cm=0):
         super(TranslationWithRotationTest, self).__init__()
         self.test_case_name = "Translation_with_rotation_print_{}cm".format(print_length_cm)
         self.actions_sequence = [
-            Action(   0,  999, (0, 0, 0),       (0, 0 , 0)),
-            Action(1000, 1999, (0, 0, 0),       (0, 0 , 70)),
-            Action(2000, 2999, (0, 0.4, 0),     (0, 0 , 70)),
-            Action(3000, 3999, (0, 0.4, 0),     (45, 0 , 70)),
-            Action(4000, 4999, (0.4, 0.4, 0),   (45, 0 , 70)),
-            Action(5000, 5999, (0.4, 0.4, 0.4), (0, 0 , 70)),
-            Action(6000, 6999, (0, 0, 0),       (0, 0 , 0)),
+            Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
+            Action(   1,  999, (0, 0, 0),       (0, 0 , 0)),
+            Action(1000, 1999, (0, 0, 0),       (0, 0 , rotation_value), printing_speed),
+            Action(2000, 2999, (0, translation_value, 0),     (0, 0 , rotation_value), printing_speed),
+            Action(3000, 3999, (0, translation_value, 0),     (rotation_value, 0 , rotation_value), printing_speed),
+            Action(4000, 4999, (translation_value, translation_value, 0),   (rotation_value, 0 , rotation_value), printing_speed),
+            Action(5000, 5999, (translation_value, translation_value, translation_value), (0, 0 , rotation_value), printing_speed),
+            Action(6000, 6999, (0, 0, 0),       (0, 0 , 0), printing_speed),
         ]
         self.length = 6999
 
 
 class RotationWhilePriningTest(TestCaseClass):
-    def __init__(self, value=66, prining_speed=0.1/1000, print_length_cm=0):
+    def __init__(self, value=66, printing_speed=0.1/1000, print_length_cm=0):
         super(RotationWhilePriningTest, self).__init__()
         self.rotation_value = value
-        self.test_case_name = "Rotation_{}deg_print_step_{}um_print_from_{}".format(value, int(prining_speed*10**6), print_length_cm)
+        self.test_case_name = "Rotation_{}deg_print_step_{}um_print_from_{}".format(value, int(printing_speed*10**6), print_length_cm)
         self.actions_sequence = [
-            Action(   0,  999, (0, 0, 0), (0, 0 , 0)),
-            Action(1000, 1999, (0, 0, 0), (value, 0 , 0), prining_speed),
-            Action(2000, 2999, (0, 0, 0), (0, 0 , 0), prining_speed),
-            Action(3000, 3999, (0, 0, 0), (0, value , 0), prining_speed),
-            Action(4000, 4999, (0, 0, 0), (0, 0 , 0), prining_speed),
-            Action(5000, 5999, (0, 0, 0), (0, 0 , value), prining_speed),
-            Action(6000, 6999, (0, 0, 0), (0, 0 , 0), prining_speed),
+            Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
+            Action(   1,  999, (0, 0, 0), (0, 0 , 0)),
+            Action(1000, 1999, (0, 0, 0), (value, 0 , 0), printing_speed),
+            Action(2000, 2999, (0, 0, 0), (0, 0 , 0), printing_speed),
+            Action(3000, 3999, (0, 0, 0), (0, value , 0), printing_speed),
+            Action(4000, 4999, (0, 0, 0), (0, 0 , 0), printing_speed),
+            Action(5000, 5999, (0, 0, 0), (0, 0 , value), printing_speed),
+            Action(6000, 6999, (0, 0, 0), (0, 0 , 0), printing_speed),
         ]
         self.length = 6999
         

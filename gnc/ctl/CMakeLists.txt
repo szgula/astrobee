@@ -23,7 +23,7 @@ catkin_package(
  DEPENDS ff_msgs ff_hw_msgs ff_common
 )
 
-catkin_install_python(PROGRAMS scripts/dummy_controller.py  scripts/base_pid_controller.py scripts/tf2_publisher.py scripts/ctl_test_manager.py
+catkin_install_python(PROGRAMS scripts/controller_wrapper.py scripts/tf2_publisher.py scripts/ctl_test_manager.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

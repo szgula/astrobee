@@ -12,11 +12,15 @@ import numpy as np
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 import time
 
+import sys, os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-class BasePIDController:
+from controllers_low_level import OrientationController, PositionController
+
+
+class ControllerWrapper:
     def __init__(self):
         rospy.logwarn('Initialise CTL...')
-        time.sleep(2)
         self.rate_contr_hz = 62.5
         rospy.init_node('ctl_node', anonymous=False)
         self.pub_ctl = rospy.Publisher(r"gnc/ctl/command", FamCommand, queue_size=5)
@@ -120,9 +124,9 @@ class BasePIDController:
     def accuare_target(self):
         try:
             trans = self.tf_buffer.lookup_transform("truth", "target", rospy.Time())
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            #rospy.logwarn('[ctl] get tf transformation exception')
-            #self.tf_buffer.clear()
+        except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as e:
+            #rospy.logwarn('[ctl] get tf transformation exception {}'.format(str(e)))
+            self.tf_buffer.clear()
             self.target_position = [0, 0, 0]
             self.target_orientation = [0, 0, 0, 1]
             return
@@ -143,7 +147,7 @@ class BasePIDController:
 
     def _print_status_informattion(self, dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=False):
         if enabled:
-            rospy.logwarn("step: {:.2f} \t time: {} \t orient: {:.1f} {:.1f} {:.1f} \t pos: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0, rospy.get_rostime(),
+            rospy.logwarn("step: {:.2f}, orient: {:.1f} {:.1f} {:.1f} \t pos: {:.2f} {:.2f} {:.2f}, \ttorques*100: {:.2f} {:.2f} {:.2f}, \tforces*10: {:.2f} {:.2f} {:.2f}".format( self.n_command / 100.0,
                         np.rad2deg(x_rot), np.rad2deg(y_rot), np.rad2deg(z_rot) ,
                         dx, dy, dz,
                         torques[0]*100, torques[1]*100, torques[2]*100,
@@ -176,71 +180,23 @@ class BasePIDController:
         self.pub_ctl.publish(self.mes_command)
         self.last_force = forces
         self.last_torque = torques
-        
 
-class OrientationController:
-    def __init__(self, dt):
-        #self.contr_x  = PID(0.01, 0, 7/4, 0, dt)  # 4,0,7
-        self.contr_x  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 4,0,7
-        self.contr_y  = PID(0.075, 0.0005, 18.0/100, 20, dt)
-        self.contr_z  = PID(0.075, 0.0005, 18.0/100, 20, dt)
-        self.limit = 0.2 * 0.1
-    
-    def __call__(self, x_target, y_target, z_target, orientation):
-        orientation = list(euler_from_quaternion((orientation.x, orientation.y, orientation.z, orientation.w)))
-        #print("orientation controller -> target: {:.2f} {:.2f} {:.2f}, orient: {:.2f} {:.2f} {:.2f}".format(*np.rad2deg([x_target, y_target, z_target] + orientation)) )
-        torque_x = self.contr_x(x_target, 0)
-        torque_y = self.contr_y(y_target, 0)
-        torque_z = self.contr_z(z_target, 0)
-        torque_x, torque_y, torque_z = np.clip(torque_x, -self.limit, self.limit), np.clip(torque_y, -self.limit, self.limit), np.clip(torque_z, -self.limit, self.limit)
-        return [torque_x, torque_y, torque_z]
 
-class PositionController:
-    def __init__(self, dt):
-        self.contr_x  = PID(0.23, 0.005, 0.9, 20, dt) 
-        self.contr_y  = PID(0.23, 0.005, 0.9, 20, dt)
-        self.contr_z  = PID(0.23, 0.005, 0.9, 20, dt)
-        self.limit = 0.2 
-    
-    def __call__(self, x_target, y_target, z_target, position):
-        force_x = self.contr_x(x_target, 0)
-        force_y = self.contr_y(y_target, 0)
-        force_z = self.contr_z(z_target, 0)
-        force_x, force_y, force_z = np.clip(force_x, -self.limit, self.limit), np.clip(force_y, -self.limit, self.limit), np.clip(force_z, -self.limit, self.limit)
-        return [force_x, force_y, force_z]
-
-class PID:
-    def __init__(self, kp, ki, kd, max_accumulator, dt):
-        self.kp = kp
-        self.ki = ki
-        self.kd = kd
-        self.max_accumulator = max_accumulator
-        self.dt = dt
-
-        self.last_e = 0
-        self.acumulator = 0
-
-    def __call__(self, target, state):
-        e = target - state
-        self.acumulator += e * self.dt
-        self.acumulator = np.clip(self.acumulator, -self.max_accumulator, self.max_accumulator)
-        p = self.kp * e
-        i = self.ki * self.acumulator
-        d = self.kd * (e - self.last_e) / self.dt
-        self.last_e = e
-        return p + i + d
 
 
 def main():
+    time.sleep(2)
     while True:
         try:
-            node = BasePIDController()
+            node = ControllerWrapper()
             node.spin()
         except rospy.ROSTimeMovedBackwardsException:
             node.tf_buffer.clear()
             rospy.logerr("ROS Time Backwards! Just ignore the exception!")
         except rospy.ROSInterruptException:
             return
+        #time.sleep(5)
+        rospy.logerr("Waiting to reinitialise")
 
 
 

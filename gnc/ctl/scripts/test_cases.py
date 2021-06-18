@@ -23,17 +23,18 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 def get_test_cases_list():
     tests = [
-            StationaryPrintEnd(),
-            QuickTest(),
-            SimpleRotationTest(print_length_cm=0),
+            #StationaryPrintEnd(),
+            #QuickTest(),
+            #SimpleRotationTest(print_length_cm=0),
             SimpleTranslationTest(print_length_cm=0),
-            TranslationWithRotationTest(print_length_cm=0),
+            #TranslationWithRotationTest(print_length_cm=0),
 
-            SimpleRotationTest(print_length_cm=0, printing_speed=0.1/1000),
+            #SimpleRotationTest(print_length_cm=0, printing_speed=0.1/1000),
             
-            SimpleRotationTest(print_length_cm=60),
+            #SimpleRotationTest(print_length_cm=60),
             SimpleTranslationTest(print_length_cm=60),
-            TranslationWithRotationTest(print_length_cm=60)]
+            #TranslationWithRotationTest(print_length_cm=60)
+            ]
     
     return tests
 

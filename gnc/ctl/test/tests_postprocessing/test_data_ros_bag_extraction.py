@@ -292,13 +292,15 @@ def main():
 
     # Base PID with 30cm print
     samples = [
-        (r'/Volumes/ros_logs/20210616_1854', 'Rotation_66deg_print_step_100um_print_from_0'),
-        (r'/Volumes/ros_logs/20210616_1854', 'Simple_rotation_66deg_print_0cm'),
-        (r'/Volumes/ros_logs/20210616_1854', 'Simple_rotation_66deg_print_60cm'),
-        (r'/Volumes/ros_logs/20210616_1854', 'Simple_translation_40cm_print_0cm'),
-        (r'/Volumes/ros_logs/20210616_1854', 'Simple_translation_40cm_print_60cm'),
-        (r'/Volumes/ros_logs/20210616_1854', 'Translation_with_rotation_print_0cm'),
-        (r'/Volumes/ros_logs/20210616_1854', 'Translation_with_rotation_print_60cm')]
+        (r'/Volumes/ros_logs/20210617_2343', 'QuickTest'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Simple_translation_40cm_print_step_0um_print_from_0cm'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Simple_translation_40cm_print_step_0um_print_from_60cm'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Simple_rotation_66deg_print_step_0um_print_from_0cm'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Simple_rotation_66deg_print_step_0um_print_from_60cm'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Rotation_with_translation_30deg_40cm_print_step_0um_print_from_0cm'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Rotation_with_translation_30deg_40cm_print_step_0um_print_from_60cm'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Simple_rotation_66deg_print_step_100um_print_from_0cm'),
+        (r'/Volumes/ros_logs/20210617_2343', 'Stationary_print_end_print_step_100um_print_from_0cm'),]
     #sample = samples[2]
     for folder_, name in samples:
         print(f"Done: {name}")

@@ -26,7 +26,7 @@ from test_cases import get_test_cases_list
 
 class CtlTestManager(object):
 
-    def __init__(self, test_, test_idx, run_name, log_path=r'/ros_logs/'):
+    def __init__(self, test_, test_idx, run_name, log_path=r'/ros_logs/', description=""):
         # Test cases definition
         self.test = test_
         self.test_idx = test_idx
@@ -51,7 +51,7 @@ class CtlTestManager(object):
 
         # Loging
         self.log_folder = os.getenv('HOME') + log_path + run_name  # strftime("%Y%m%d_%H%M")
-        self.prepare_log_folders()
+        self.prepare_log_folders(description)
         self.ros_bag = None
 
         # ROS stuff (node, communicattion, transormation)
@@ -170,11 +170,12 @@ class CtlTestManager(object):
         pos, orient_quat = [0, 0, 0], [self.initial_rot.x, self.initial_rot.y, self.initial_rot.z, self.initial_rot.w]
         return pos, orient_quat
 
-    def prepare_log_folders(self):
+    def prepare_log_folders(self, description):
         # create a log folder, description.txt, 
         if not os.path.exists(self.log_folder):
             os.mkdir(self.log_folder)
-            open(self.log_folder + '/description.txt', 'a').close()
+            with open(self.log_folder + '/description.txt', 'a') as dsc_file:
+                dsc_file.write(description)
 
     def log_test_case(self):
         if self.ros_bag is not None:
@@ -216,6 +217,12 @@ class CtlTestManager(object):
 
 
 if __name__ == '__main__':
+    description = ""
+    if len(sys.argv) < 2:
+        print("usage: rosurn ctl ctl_test_manager 'description' ")
+    else:
+        description = sys.argv[1]
+
     tests = get_test_cases_list()
     
     tests_run_name = strftime("%Y%m%d_%H%M")
@@ -224,7 +231,7 @@ if __name__ == '__main__':
     while test_idx < len(tests):
         test = tests[test_idx]
         result = False
-        node = CtlTestManager(test, test_idx=test_idx, run_name=tests_run_name)
+        node = CtlTestManager(test, test_idx=test_idx, run_name=tests_run_name, description=description)
         try:
             result = node.spin()
         except rospy.ROSTimeMovedBackwardsException:

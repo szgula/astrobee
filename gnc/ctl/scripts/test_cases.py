@@ -23,16 +23,21 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 def get_test_cases_list():
     tests = [
+            #ModelIdentificationTest(p_x=-0.4),
+            #ModelIdentificationTest(r_z=45),
             #StationaryPrintEnd(),
             #QuickTest(),
-            #SimpleRotationTest(print_length_cm=0),
-            SimpleTranslationTest(print_length_cm=0),
+            #SimpleRotationTest(value=0.1, print_length_cm=0),
+            #SimpleRotationTest(value=1, print_length_cm=0),
+            #SimpleRotationTest(value=2, print_length_cm=0),
+            #SimpleRotationTest(value=35, print_length_cm=0),
+            SimpleTranslationTest(value=1, print_length_cm=0),
             #TranslationWithRotationTest(print_length_cm=0),
 
             #SimpleRotationTest(print_length_cm=0, printing_speed=0.1/1000),
             
             #SimpleRotationTest(print_length_cm=60),
-            SimpleTranslationTest(print_length_cm=60),
+            #SimpleTranslationTest(print_length_cm=60),
             #TranslationWithRotationTest(print_length_cm=60)
             ]
     
@@ -124,6 +129,18 @@ class QuickTest(TestCaseClass):
         self.actions_sequence = [
             Action(   0,  0, (0, 0, 0), (0, 0 , 0), 0),
             Action(   1,  999, (1, 1, 1), (0, 0 , 0), 0),
+        ]
+        self.length = self.actions_sequence[-1].t_end
+
+
+class ModelIdentificationTest(TestCaseClass):
+    def __init__(self, p_x=0, p_y=0, p_z=0, r_x=0, r_y=0, r_z=0, print_length_cm=0):
+        super(ModelIdentificationTest, self).__init__()
+        self.test_case_name = "ModelIdentificationTest"
+        self.actions_sequence = [
+            Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
+            Action(   1,  99, (0, 0, 0), (0, 0 , 0), 0),
+            Action(   100,  2999, (p_x, p_y, p_z), (r_x, r_y , r_z), 0),
         ]
         self.length = self.actions_sequence[-1].t_end
 

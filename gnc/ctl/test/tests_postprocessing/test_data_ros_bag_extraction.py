@@ -168,7 +168,7 @@ class CtlPostprocessing:
     def calculate_time_domain_errors_kpis(self):
         ref_pos = self.reference[['pose.position.x', 'pose.position.y', 'pose.position.z']]
         pos = self.pose[['pose.position.x', 'pose.position.y', 'pose.position.z']]
-        kpi_values_lin = CtlPostprocessing.get_basic_time_kpis(ref_pos, pos, self.pose.Time, "position")
+        kpi_values_lin = CtlPostprocessing.get_basic_time_kpis(ref_pos, pos, (self.pose['header.stamp.secs'] + self.pose['header.stamp.nsecs'] / 10e8), "position")
 
         quat = self.pose[
             ['pose.orientation.x', 'pose.orientation.y', 'pose.orientation.z', 'pose.orientation.w']].to_numpy()
@@ -176,15 +176,15 @@ class CtlPostprocessing:
             ['pose.orientation.x', 'pose.orientation.y', 'pose.orientation.z', 'pose.orientation.w']].to_numpy()
         rot_deg = self.get_eulers_from_quaternions(quat, True)
         rot_deg_ref = self.get_eulers_from_quaternions(quat_ref, True)
-        kpi_values_rot = CtlPostprocessing.get_basic_time_kpis(rot_deg_ref, rot_deg, self.pose.Time, "orientation")
+        kpi_values_rot = CtlPostprocessing.get_basic_time_kpis(rot_deg_ref, rot_deg, (self.pose['header.stamp.secs'] + self.pose['header.stamp.nsecs'] / 10e8), "orientation")
 
         return kpi_values_lin + kpi_values_rot
 
     def plot_(self, folder_, name):
         # plot time signals
         c = ['b', 'g', 'r']
-        t = self.pose.Time - min(self.pose.Time)
-        t_ref = self.reference.Time - min(self.reference.Time)
+        t = (self.pose['header.stamp.secs'] + self.pose['header.stamp.nsecs'] / 10e8) - (self.pose['header.stamp.secs'][0] + self.pose['header.stamp.nsecs'][0] / 10e8)
+        t_ref = (self.reference['header.stamp.secs'] + self.reference['header.stamp.nsecs'] / 10e8) - (self.reference['header.stamp.secs'][0] + self.reference['header.stamp.nsecs'][0] / 10e8)
         for idx, pos_signal_name in enumerate(['pose.position.x', 'pose.position.y', 'pose.position.z']):
             plt.plot(t,  self.pose[pos_signal_name], c[idx], label=pos_signal_name)
             plt.plot(t_ref, self.reference[pos_signal_name],  f'{c[idx]}--')
@@ -214,7 +214,7 @@ class CtlPostprocessing:
         # 2 -> rot reference, rot
         # 3 -> (past) cum effort
 
-        t = self.ctl.Time - min(self.ctl.Time)
+        t = (self.ctl['header.stamp.secs'] + self.ctl['header.stamp.nsecs'] / 10e8) - (self.ctl['header.stamp.secs'][0] + self.ctl['header.stamp.nsecs'][0] / 10e8)
         for idx, pos_signal_name in enumerate(['wrench.force.x', 'wrench.force.y', 'wrench.force.z']):
             plt.plot(t,  self.ctl[pos_signal_name], c[idx], label=pos_signal_name)
         plt.title("Force ctl signals")

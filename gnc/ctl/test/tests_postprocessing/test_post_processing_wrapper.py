@@ -5,7 +5,7 @@ from generate_report import PDF
 from test_data_ros_bag_extraction import generate_kpi_wrapper
 import glob
 
-TEST_RUN = '20210617_2343'
+TEST_RUN = '20210622_0913'
 LOG_PATH = f'/Volumes/ros_logs/{TEST_RUN}'
 
 def main(test_run, log_folder):

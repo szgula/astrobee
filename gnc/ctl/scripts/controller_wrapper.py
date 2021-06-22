@@ -6,7 +6,7 @@ from ff_msgs.msg import FamCommand
 from ff_msgs.msg import Heartbeat
 from ff_msgs.msg import FlightMode
 from ff_msgs.msg import EkfState
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, TwistStamped
 from copy import deepcopy
 import numpy as np
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
@@ -38,6 +38,7 @@ class ControllerWrapper:
         self.mes_heartbeat = self._get_heartbeat_mes()
         self.mes_flight_mode = self._get_fligh_mode_mes()
         self._ekf_state = EkfState()
+        self.last_vel = None
 
         self.orient_contr = OrientationController(1/self.rate_contr_hz)
         self.pos_contr = PositionController(1/self.rate_contr_hz)
@@ -52,6 +53,9 @@ class ControllerWrapper:
         self.last_torque = [0, 0, 0]
         self.last_force = [0, 0, 0]
         rospy.Subscriber("loc/truth/pose", PoseStamped, self._ekf_callback)
+        rospy.Subscriber("loc/truth/twist", TwistStamped, self._get_astrobee_vel)
+        self.cycles_since_target_update = 0
+        self.max_cycles_without_target_update = 20
 
 
     def _get_heartbeat_mes(self):
@@ -120,16 +124,22 @@ class ControllerWrapper:
             self.initial_pos = self._ekf_state.pose.position
         self.orientation_read = True
         self.position_read = True
+    
+    def _get_astrobee_vel(self, data):
+        self.last_vel = data
 
     def accuare_target(self):
         try:
             trans = self.tf_buffer.lookup_transform("truth", "target", rospy.Time())
         except (tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException, tf2_ros.LookupException) as e:
             #rospy.logwarn('[ctl] get tf transformation exception {}'.format(str(e)))
-            self.tf_buffer.clear()
-            self.target_position = [0, 0, 0]
-            self.target_orientation = [0, 0, 0, 1]
+            if self.cycles_since_target_update > self.max_cycles_without_target_update:
+                self.tf_buffer.clear()
+                self.target_position = [0, 0, 0]
+                self.target_orientation = [0, 0, 0, 1]
+            self.cycles_since_target_update += 1
             return
+        self.cycles_since_target_update = 0
         pos_3dvec = trans.transform.translation
         orient_quat = trans.transform.rotation
         self.target_position = [pos_3dvec.x, pos_3dvec.y, pos_3dvec.z]
@@ -139,8 +149,8 @@ class ControllerWrapper:
     def spin(self):
         rospy.logwarn('[ctl] Starts talking...')
         while not rospy.is_shutdown():
-            self.control()
             self.accuare_target()
+            self.control()
             if self.n_command % 25 == 0:
                 self._health_communication()
             self.rate.sleep()
@@ -161,8 +171,9 @@ class ControllerWrapper:
         
 
     def control(self):
+        t_now = rospy.get_rostime().to_sec()
         if self.n_command < 100:
-            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation)
+            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation, t=t_now)
             forces = [0, 0, 0]
             control_mode=1
             status=3
@@ -170,8 +181,8 @@ class ControllerWrapper:
             dx, dy, dz = self.target_position
             orientation = euler_from_quaternion(self.target_orientation)
             x_rot, y_rot, z_rot = orientation 
-            torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation)
-            forces = self.pos_contr(dx, dy, dz, self._ekf_state.pose.position)
+            torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation, self.last_vel, t_now)
+            forces = self.pos_contr(dx, dy, dz, self._ekf_state.pose.position, self.last_vel, t_now)
             control_mode=2
             status=2
             self._print_status_informattion(dx, dy, dz, x_rot, y_rot, z_rot, torques, forces, enabled=(self.n_command % 25 == 0))

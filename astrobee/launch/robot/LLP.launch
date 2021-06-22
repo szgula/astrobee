@@ -212,6 +212,6 @@
 
   </group>
 
-  <node name="ctl_node" pkg="ctl" type="controller_wrapper.py" />
+  <!--<node name="ctl_node" pkg="ctl" type="controller_wrapper.py" />-->
 
 </launch>

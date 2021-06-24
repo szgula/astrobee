@@ -2,6 +2,7 @@ import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from pid import PID
+from lqr import LQR
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 import numpy as np
 
@@ -30,9 +31,12 @@ class OrientationController:
 class PositionController:
     def __init__(self, dt):
         self.limit = 0.2 
-        self.contr_x  = PID(0.35, 0.002, 0.82, 200, dt) 
-        self.contr_y  = PID(0.35, 0.002, 0.82, 200, dt)
-        self.contr_z  = PID(0.35, 0.002, 0.82, 200, dt) # 0.35, 0.02, 0.62, 200, dt
+        #self.contr_x  = PID(0.35, 0.002, 0.82, 200, dt) 
+        #self.contr_y  = PID(0.35, 0.002, 0.82, 200, dt)
+        #self.contr_z  = PID(0.35, 0.002, 0.82, 200, dt) # 0.35, 0.02, 0.62, 200, dt
+        self.contr_x = LQR([0.6296, 2.5756], 0.6303)  # [0.1413, -0.5845], 0.1416
+        self.contr_y = LQR([0.6296, 2.5756], 0.6303)
+        self.contr_z = LQR([0.6296, 2.5756], 0.6303)
         
     
     def __call__(self, x_target, y_target, z_target, position, last_vel=None, t=None):

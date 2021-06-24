@@ -4,9 +4,10 @@ import glob
 import os
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
+from scipy.optimize import curve_fit
 
-TEST_RUN = '20210622_0643'
-LOG_PATH = f'/Volumes/ros_logs/{TEST_RUN}/ModelIdentificationTest/'
+TEST_RUN = '20210622_0747'
+LOG_PATH = f'/Volumes/ros_logs/{TEST_RUN}/Simple_translation_40cm_print_step_0um_print_from_0cm/'
 
 def main(test_run, log_folder):
     samples = glob.glob(log_folder+r'*')
@@ -67,6 +68,92 @@ def main(test_run, log_folder):
 
     pass
 
+    plt.plot(pos['pose.position.x'])
+    plt.show()
+    model = get_pos_model()
+    model_out_pos = []
+    model_out_vel = []
+    t_last = com['Time'][0] - model.dt
+    for t_c, command in com[['Time', 'wrench.force.x']].values:
+        t = t_c - t_last
+        t_last = t_c
+        y_temp, x_temp = model.step(command, t)
+        model_out_pos.append(y_temp)
+        model_out_vel.append(x_temp[1,0])
+    plt.plot(model_out_vel, label="modeled velocity")
+    plt.plot(vel['twist.linear.x'], label="recorded velocity")
+    plt.legend()
+    plt.show()
+
+    pos_x = pos[['Time', 'pose.position.x']]
+    vel_x = vel[['Time', 'twist.linear.x']]
+    com_x = com[['Time', 'wrench.force.x']]
+
+    vel_and_com_x = pd.merge(vel_x, com_x, on="Time")
+    dt = vel_and_com_x.Time.diff()[1:]
+    vel_and_com_x = vel_and_com_x[1:]
+    vel_and_com_x.Time = dt
+    data_in = vel_and_com_x[:-1].values
+    data_out = vel_and_com_x[1:]['twist.linear.x'].values
+    def vel_data(x, C):
+        y = 0.99664271*x[:, 1] + x[:, 0] * x[:, 2] / 9.087 + C*np.sign(x[:, 1])*abs(x[:, 1])**0.5#abs(x[:, 1])
+        return y
+
+    parameters, covariance = curve_fit(vel_data, data_in, data_out)
+
+    ff = 9.087 * vel_and_com_x['twist.linear.x'].diff() / vel_and_com_x.Time
+    plt.plot(vel_and_com_x['wrench.force.x'], label="recorded force")
+    plt.plot(ff, label="predicted force")
+    plt.legend()
+    plt.show()
+
+    pass
+
+
+
+class Model:
+    def __init__(self, A, B, C, D, E=[[0,0], [0,0]], dt=1/62.5, m=None):
+        self.A = np.array(A)
+        self.B = np.array(B)
+        self.C = np.array(C)
+        self.D = np.array(D)
+        self.E = np.array(E)
+        self.dt = dt
+        self.m = m
+        self.x = np.array([[0], [0]])
+
+    def step(self, u, dt=None):
+        if dt is None:
+            #dt = self.dt
+            self.A[0, 1] = self.dt
+            self.B[1, 0] = self.dt / self.m
+        else:
+            self.A[0, 1] = dt
+            self.B[1, 0] = dt / self.m
+        x_next = np.dot(self.A, self.x) + np.dot(self.B, u) + np.dot(self.E, self.x*abs(self.x))
+        y = np.dot(self.C, x_next)
+        #print(y)
+        #print(x_next)
+        self.x = x_next
+        return y[0, 0], x_next
+
+def get_pos_model():
+    m = 9.087 #9.087
+    A = [[0., 1.], [0., 0.]]
+    B = [[0.], [1.0 / m]]
+    C = [[1., 0.]]
+    D = 0
+    dt = 1.0 / 62.5
+
+    dA = [[1, dt], [0, 0.99664271]]
+    dB = [[0.], [dt / m]]
+    dC = C
+    dD = D
+    #drag_ = -0.5 * 1.05 * 0.092903 * 1.225
+    drag_ = 0.00691741
+    dE = [[0., 0.], [0, drag_]]
+    model = Model(dA, dB, dC, dD, dE, dt, m)
+    return model
 
 
 if __name__ == "__main__":

@@ -7,6 +7,8 @@ class LQR:
         self.last_out = 0
 
     def __call__(self, target, state, v, t=None):
+        if v is None:
+            v = 0
         e = target - state
         out = target * self.N + (self.K[0] * e - self.K[1] * v)
         return out

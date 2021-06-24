@@ -8,10 +8,12 @@ import numpy as np
 
 class OrientationController:
     def __init__(self, dt):
-        #self.contr_x  = PID(0.01, 0, 7/4, 0, dt)  # 4,0,7
-        self.contr_x  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 0.075, 0.0005, 18.0/100, 20, dt
-        self.contr_y  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 0.15, 0.015, 30.0/100, 200, dt
-        self.contr_z  = PID(0.075, 0.0005, 18.0/100, 20, dt)
+        #self.contr_x  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 0.075, 0.0005, 18.0/100, 20, dt
+        #self.contr_y  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 0.15, 0.015, 30.0/100, 200, dt
+        #self.contr_z  = PID(0.075, 0.0005, 18.0/100, 20, dt)
+        self.contr_x = LQR([0.0442, 0.2048], 0.0442) # 0.0443    0.1796
+        self.contr_y = LQR([0.0442, 0.2048], 0.0442)
+        self.contr_z = LQR([0.0442, 0.2048], 0.0442)
         self.limit = 0.2 * 0.1
     
     def __call__(self, x_target, y_target, z_target, orientation, last_vel=None, t=None):
@@ -34,9 +36,9 @@ class PositionController:
         #self.contr_x  = PID(0.35, 0.002, 0.82, 200, dt) 
         #self.contr_y  = PID(0.35, 0.002, 0.82, 200, dt)
         #self.contr_z  = PID(0.35, 0.002, 0.82, 200, dt) # 0.35, 0.02, 0.62, 200, dt
-        self.contr_x = LQR([0.6296, 2.5756], 0.6303)  # [0.1413, -0.5845], 0.1416
-        self.contr_y = LQR([0.6296, 2.5756], 0.6303)
-        self.contr_z = LQR([0.6296, 2.5756], 0.6303)
+        self.contr_x = LQR([0.6296, 2.7756], 0.6303)  # [0.1413, -0.5845], 0.1416
+        self.contr_y = LQR([0.6296, 2.7756], 0.6303)  #([0.6296, 2.5756], 0.6303) was the best so far
+        self.contr_z = LQR([0.6296, 2.7756], 0.6303)
         
     
     def __call__(self, x_target, y_target, z_target, position, last_vel=None, t=None):

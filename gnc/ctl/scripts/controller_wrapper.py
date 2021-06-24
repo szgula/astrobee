@@ -173,7 +173,7 @@ class ControllerWrapper:
     def control(self):
         t_now = rospy.get_rostime().to_sec()
         if self.n_command < 100:
-            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation, t=t_now)
+            torques = self.orient_contr(0, 0, 0, self._ekf_state.pose.orientation, self.last_vel, t=t_now)
             forces = [0, 0, 0]
             control_mode=1
             status=3

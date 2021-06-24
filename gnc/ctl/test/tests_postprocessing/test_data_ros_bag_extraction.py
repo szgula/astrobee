@@ -17,11 +17,30 @@ class CtlPostprocessing:
         b = bagreader(path_to_file)
         # change folder and sub-folders permission (needs to be "writable" by other)
 
-        self.ctl = pd.read_csv(b.message_by_topic('gnc/ctl/command'))
-        self.pmc = pd.read_csv(b.message_by_topic('hw/pmc/command'))
-        self.reference = pd.read_csv(b.message_by_topic('loc/reference'))
-        self.pose = pd.read_csv(b.message_by_topic('loc/truth/pose'))
-        self.vel = pd.read_csv(b.message_by_topic('loc/truth/twist'))
+        if os.path.exists(f"{b.datafolder}/nc-ctl-command.csv"):
+            self.ctl = pd.read_csv(f"{b.datafolder}/nc-ctl-command.csv")
+        else:
+            self.ctl = pd.read_csv(b.message_by_topic('gnc/ctl/command'))
+
+        if os.path.exists(f"{b.datafolder}/w-pmc-command.csv"):
+            self.pmc = pd.read_csv(f"{b.datafolder}/w-pmc-command.csv")
+        else:
+            self.pmc = pd.read_csv(b.message_by_topic('hw/pmc/command'))
+
+        if os.path.exists(f"{b.datafolder}/oc-reference.csv"):
+            self.reference = pd.read_csv(f"{b.datafolder}/oc-reference.csv")
+        else:
+            self.reference = pd.read_csv(b.message_by_topic('loc/reference'))
+
+        if os.path.exists(f"{b.datafolder}/oc-truth-pose.csv"):
+            self.pose = pd.read_csv(f"{b.datafolder}/oc-truth-pose.csv")
+        else:
+            self.pose = pd.read_csv(b.message_by_topic('loc/truth/pose'))
+
+        if os.path.exists(f"{b.datafolder}/oc-truth-twist.csv"):
+            self.vel = pd.read_csv(f"{b.datafolder}/oc-truth-twist.csv")
+        else:
+            self.vel = pd.read_csv(b.message_by_topic('loc/truth/twist'))
         # FIXME all data contains duplicated and missing records - take a look at header.seq
 
     def calculate_effort_kpis(self):

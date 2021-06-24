@@ -5,9 +5,11 @@ import os
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation
 from scipy.optimize import curve_fit
+from models import get_pos_model
 
-TEST_RUN = '20210622_0747'
-LOG_PATH = f'/Volumes/ros_logs/{TEST_RUN}/Simple_translation_40cm_print_step_0um_print_from_0cm/'
+
+TEST_RUN = '20210623_1231'
+LOG_PATH = f'/Volumes/ros_logs/{TEST_RUN}/Simple_rotation_35deg_print_step_0um_print_from_0cm/'
 
 def main(test_run, log_folder):
     samples = glob.glob(log_folder+r'*')
@@ -48,6 +50,7 @@ def main(test_run, log_folder):
     rot = Rotation.from_quat(quat)
     rot_deg = rot.as_euler('xyz', degrees=True)
     rot_deg = pd.DataFrame(rot_deg, columns=['x', 'y', 'z'])
+    rot_deg['Time'] = pos.Time
     a_ang_z = rot_deg.z.diff().diff()
     dt_pos = pos.Time.diff()
     a_ang_z = a_ang_z * np.pi / (dt_pos * 180)
@@ -102,58 +105,31 @@ def main(test_run, log_folder):
     parameters, covariance = curve_fit(vel_data, data_in, data_out)
 
     ff = 9.087 * vel_and_com_x['twist.linear.x'].diff() / vel_and_com_x.Time
-    plt.plot(vel_and_com_x['wrench.force.x'], label="recorded force")
     plt.plot(ff, label="predicted force")
+    plt.plot(vel_and_com_x['wrench.force.x'], label="recorded force")
     plt.legend()
     plt.show()
 
     pass
 
 
+    #########       ROTATION
+    ort_x = rot_deg[['Time', 'x']]
+    ort_vel_x = vel[['Time', 'twist.angular.x']]
+    ort_com_x = com[['Time', 'wrench.torque.x']]
+    ort_vel_and_com_x = pd.merge(ort_vel_x, ort_com_x, on="Time")
+    dt = ort_vel_and_com_x.Time.diff()[1:]
+    ort_vel_and_com_x = ort_vel_and_com_x[1:]
+    ort_vel_and_com_x.Time = dt
+    data_in = ort_vel_and_com_x[:-1].values
+    data_out = ort_vel_and_com_x[1:]['twist.angular.x'].values
 
-class Model:
-    def __init__(self, A, B, C, D, E=[[0,0], [0,0]], dt=1/62.5, m=None):
-        self.A = np.array(A)
-        self.B = np.array(B)
-        self.C = np.array(C)
-        self.D = np.array(D)
-        self.E = np.array(E)
-        self.dt = dt
-        self.m = m
-        self.x = np.array([[0], [0]])
+    def ort_vel_data(x, A):
+        y = x[:, 1] + x[:, 0] * x[:, 2] / A #+ C*np.sign(x[:, 1])*abs(x[:, 1])**0.5#abs(x[:, 1])
+        return y
 
-    def step(self, u, dt=None):
-        if dt is None:
-            #dt = self.dt
-            self.A[0, 1] = self.dt
-            self.B[1, 0] = self.dt / self.m
-        else:
-            self.A[0, 1] = dt
-            self.B[1, 0] = dt / self.m
-        x_next = np.dot(self.A, self.x) + np.dot(self.B, u) + np.dot(self.E, self.x*abs(self.x))
-        y = np.dot(self.C, x_next)
-        #print(y)
-        #print(x_next)
-        self.x = x_next
-        return y[0, 0], x_next
+    parameters, covariance = curve_fit(ort_vel_data, data_in, data_out)
 
-def get_pos_model():
-    m = 9.087 #9.087
-    A = [[0., 1.], [0., 0.]]
-    B = [[0.], [1.0 / m]]
-    C = [[1., 0.]]
-    D = 0
-    dt = 1.0 / 62.5
-
-    dA = [[1, dt], [0, 0.99664271]]
-    dB = [[0.], [dt / m]]
-    dC = C
-    dD = D
-    #drag_ = -0.5 * 1.05 * 0.092903 * 1.225
-    drag_ = 0.00691741
-    dE = [[0., 0.], [0, drag_]]
-    model = Model(dA, dB, dC, dD, dE, dt, m)
-    return model
 
 
 if __name__ == "__main__":

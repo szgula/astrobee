@@ -33,7 +33,7 @@ def get_test_cases_list():
             SimpleTranslationTest(value=0.4, print_length_cm=0),
             TranslationWithRotationTest(print_length_cm=0),
 
-            SimpleRotationTest(print_length_cm=0, printing_speed=0.1/1000),
+            SimpleRotationTest(print_length_cm=0, printing_speed=0.03/1000),
             
             SimpleRotationTest(print_length_cm=60),
             SimpleTranslationTest(print_length_cm=60),
@@ -67,7 +67,7 @@ class SimpleRotationTest(TestCaseClass):
     def __init__(self, value=66, printing_speed=0, print_length_cm=0):
         super(SimpleRotationTest, self).__init__()
         self.rotation_value = value
-        self.test_case_name = "Simple_rotation_{}deg_print_step_{}um_print_from_{}cm".format(value, int(printing_speed*10**6), print_length_cm)
+        self.test_case_name = "2_Simple_rotation_{}deg_print_step_{}um_print_from_{}cm".format(value, int(printing_speed*10**6), print_length_cm)
         self.actions_sequence = [
             Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
             Action(   1,  999, (0, 0, 0), (0, 0 , 0)),
@@ -83,7 +83,7 @@ class SimpleRotationTest(TestCaseClass):
 class SimpleTranslationTest(TestCaseClass):
     def __init__(self, value=0.4, printing_speed=0, print_length_cm=0):
         super(SimpleTranslationTest, self).__init__()
-        self.test_case_name = "Simple_translation_{}cm_print_step_{}um_print_from_{}cm".format(int(value*100), int(printing_speed*10**6), print_length_cm)
+        self.test_case_name = "3_Simple_translation_{}cm_print_step_{}um_print_from_{}cm".format(int(value*100), int(printing_speed*10**6), print_length_cm)
         self.actions_sequence = [
             Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
             Action(   1,  999, (0, 0, 0), (0, 0 , 0)),
@@ -99,7 +99,7 @@ class SimpleTranslationTest(TestCaseClass):
 class TranslationWithRotationTest(TestCaseClass):
     def __init__(self, translation_value=0.4, rotation_value=30, printing_speed=0, print_length_cm=0):
         super(TranslationWithRotationTest, self).__init__()
-        self.test_case_name = "Rotation_with_translation_{}deg_{}cm_print_step_{}um_print_from_{}cm".format(rotation_value, int(translation_value*100), int(printing_speed*10**6), print_length_cm)
+        self.test_case_name = "4_Rotation_with_translation_{}deg_{}cm_print_step_{}um_print_from_{}cm".format(rotation_value, int(translation_value*100), int(printing_speed*10**6), print_length_cm)
         self.actions_sequence = [
             Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
             Action(   1,  999, (0, 0, 0),       (0, 0 , 0)),
@@ -112,7 +112,7 @@ class TranslationWithRotationTest(TestCaseClass):
 class StationaryPrintEnd(TestCaseClass):
     def __init__(self, printing_speed=0.1/1000, print_length_cm=0):
         super(StationaryPrintEnd, self).__init__()
-        self.test_case_name = "Stationary_print_end_print_step_{}um_print_from_{}cm".format(int(printing_speed*10**6), print_length_cm)
+        self.test_case_name = "5_Stationary_print_end_print_step_{}um_print_from_{}cm".format(int(printing_speed*10**6), print_length_cm)
         self.actions_sequence = [
             Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
             Action(   1,  999, (0, 0, 0),       (0, 0 , 0)),
@@ -124,7 +124,7 @@ class StationaryPrintEnd(TestCaseClass):
 class QuickTest(TestCaseClass):
     def __init__(self):
         super(QuickTest, self).__init__()
-        self.test_case_name = "QuickTest"
+        self.test_case_name = "0_QuickTest"
         self.actions_sequence = [
             Action(   0,  0, (0, 0, 0), (0, 0 , 0), 0),
             Action(   1,  999, (1, 1, 1), (0, 0 , 0), 0),
@@ -135,7 +135,7 @@ class QuickTest(TestCaseClass):
 class ModelIdentificationTest(TestCaseClass):
     def __init__(self, p_x=0, p_y=0, p_z=0, r_x=0, r_y=0, r_z=0, print_length_cm=0):
         super(ModelIdentificationTest, self).__init__()
-        self.test_case_name = "ModelIdentificationTest"
+        self.test_case_name = "1_ModelIdentificationTest"
         self.actions_sequence = [
             Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
             Action(   1,  99, (0, 0, 0), (0, 0 , 0), 0),

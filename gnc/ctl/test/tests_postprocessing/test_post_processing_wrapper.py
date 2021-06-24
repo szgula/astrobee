@@ -5,13 +5,13 @@ from generate_report import PDF
 from test_data_ros_bag_extraction import generate_kpi_wrapper
 import glob
 
-TEST_RUN = '20210623_1231'
+TEST_RUN = '20210624_1804'
 LOG_PATH = f'/Volumes/ros_logs/{TEST_RUN}'
 
 def main(test_run, log_folder):
     samples = glob.glob(log_folder+r'/*.bag')
     test_cases = [os.path.basename(test_case_path)[:-4] for test_case_path in samples ]
-
+    test_cases.sort()
 
     for name in test_cases:
         print(f"Done: {name}")

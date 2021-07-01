@@ -25,19 +25,20 @@ def get_test_cases_list():
     tests = [
             #ModelIdentificationTest(p_x=-0.4),
             #ModelIdentificationTest(r_z=45),
-            StationaryPrintEnd(),
-            QuickTest(),
-            SimpleRotationTest(value=2, print_length_cm=0),
-            SimpleRotationTest(value=35, print_length_cm=0),
-            SimpleTranslationTest(value=1, print_length_cm=0),
-            SimpleTranslationTest(value=0.4, print_length_cm=0),
-            TranslationWithRotationTest(print_length_cm=0),
-
-            SimpleRotationTest(print_length_cm=0, printing_speed=0.03/1000),
-            
-            SimpleRotationTest(print_length_cm=60),
-            SimpleTranslationTest(print_length_cm=60),
-            TranslationWithRotationTest(print_length_cm=60)
+            #StationaryPrintEnd(),
+            #QuickTest(),
+            #SimpleRotationTest(value=2, print_length_cm=0),
+            #SimpleRotationTest(value=35, print_length_cm=0),
+            #SimpleTranslationTest(value=1, print_length_cm=0),
+            #SimpleTranslationTest(value=0.4, print_length_cm=0),
+            #TranslationWithRotationTest(print_length_cm=0),
+#
+            #SimpleRotationTest(print_length_cm=0, printing_speed=0.03/1000),
+            #
+            #SimpleRotationTest(print_length_cm=60),
+            #SimpleTranslationTest(print_length_cm=60),
+            #TranslationWithRotationTest(print_length_cm=60)
+            StationaryPrintEndWithRotation()
             ]
     
     return tests
@@ -119,6 +120,17 @@ class StationaryPrintEnd(TestCaseClass):
             ActionStationaryPrintEnd(1000, 9999, (0, 0, 0), (0, 0 , 0), printing_speed),
         ]
         self.length = self.actions_sequence[-1].t_end
+
+class StationaryPrintEndWithRotation(TestCaseClass):
+    def __init__(self, printing_speed=0.03/1000, print_length_cm=0):
+        super(StationaryPrintEndWithRotation, self).__init__()
+        self.test_case_name = "6_Stationary_print_end_with_rotation_print_step_{}um_print_from_{}cm".format(int(printing_speed*10**6), print_length_cm)
+        self.actions_sequence = [
+            Action(   0,  0, (0, 0, 0), (0, 0 , 0), float(print_length_cm)/100.0),
+            Action(   1,  999, (0, 0, 0),       (0, 0 , 0)),
+            ActionStationaryPrintEndWithRotation(1000, 12999, (0, 0, 0), (0, 0 , 0), printing_speed),
+        ]
+        self.length = self.actions_sequence[-1].t_end
         
 
 class QuickTest(TestCaseClass):
@@ -163,9 +175,46 @@ class Action(object):
 class ActionStationaryPrintEnd(Action):
     def __init__(self, t_beg, t_end, pos, rot, print_speed):
         super(ActionStationaryPrintEnd, self).__init__(t_beg, t_end, pos, rot, print_speed)
+        self.start_time = None
     def get_pos(self, time):
+        if self.start_time is None:
+            self.start_time = time
+        time -= self.start_time
         current_length = time * self.print_speed
         pos = list(self.pos)
         pos[0] += current_length
         return pos
     
+class ActionStationaryPrintEndWithRotation(Action):
+    def __init__(self, t_beg, t_end, pos, rot, print_speed):
+        super(ActionStationaryPrintEndWithRotation, self).__init__(t_beg, t_end, pos, rot, print_speed)
+        self.total_time = t_end - t_beg
+        self.start_time = None
+        self.angle_change = 90  # deg
+        self.printing_part = 0.95
+        self.l0 = 0.1
+
+    def get_pos(self, time):
+        if self.start_time is None:
+            self.start_time = time
+        time -= self.start_time
+        time = min(time, self.printing_part * self.total_time)
+
+        current_length = time * self.print_speed + self.l0
+        current_angle = self.angle_change * time / (self.total_time * self.printing_part)
+        current_x = current_length * np.cos(np.deg2rad(current_angle))
+        current_y = current_length * np.sin(np.deg2rad(current_angle))
+        pos = list(self.pos)
+        pos[0] += current_x - self.l0
+        pos[1] += current_y
+        return pos
+
+    def get_quat(self, time, *args):
+        """return list [x, y, z, w]"""
+        if self.start_time is None:
+            self.start_time = time
+        time -= self.start_time
+        current_angle = self.angle_change * time / self.total_time
+        rot_rad = [np.deg2rad(a_deg) for a_deg in self.rot]  # How about np.deg2rad(np.clip(a_deg, -89, 89)) ?
+        rot_rad[2] += np.deg2rad(current_angle)
+        return quaternion_from_euler(*rot_rad)

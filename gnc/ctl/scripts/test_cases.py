@@ -27,18 +27,18 @@ def get_test_cases_list():
             #ModelIdentificationTest(r_z=45),
             #StationaryPrintEnd(),
             #QuickTest(),
-            #SimpleRotationTest(value=2, print_length_cm=0),
-            #SimpleRotationTest(value=35, print_length_cm=0),
+            SimpleRotationTest(value=2, print_length_cm=0),
+            SimpleRotationTest(value=35, print_length_cm=0),
             #SimpleTranslationTest(value=1, print_length_cm=0),
             #SimpleTranslationTest(value=0.4, print_length_cm=0),
-            #TranslationWithRotationTest(print_length_cm=0),
-#
+            TranslationWithRotationTest(print_length_cm=0),
+##
             #SimpleRotationTest(print_length_cm=0, printing_speed=0.03/1000),
             #
-            #SimpleRotationTest(print_length_cm=60),
+            SimpleRotationTest(print_length_cm=60),
             #SimpleTranslationTest(print_length_cm=60),
-            #TranslationWithRotationTest(print_length_cm=60)
-            StationaryPrintEndWithRotation()
+            TranslationWithRotationTest(print_length_cm=60),
+            #StationaryPrintEndWithRotation()
             ]
     
     return tests
@@ -171,6 +171,10 @@ class Action(object):
         return quaternion_from_euler(*rot_rad)
     def get_pos(self, *args):
         return self.pos
+    def get_pos_vel(self):
+        return [0, 0, 0]
+    def get_ort_vel(self):
+        return [0, 0, 0]
 
 class ActionStationaryPrintEnd(Action):
     def __init__(self, t_beg, t_end, pos, rot, print_speed):
@@ -184,6 +188,8 @@ class ActionStationaryPrintEnd(Action):
         pos = list(self.pos)
         pos[0] += current_length
         return pos
+    def get_pos_vel(self):
+        return [self.print_speed, 0, 0] 
     
 class ActionStationaryPrintEndWithRotation(Action):
     def __init__(self, t_beg, t_end, pos, rot, print_speed):
@@ -218,3 +224,17 @@ class ActionStationaryPrintEndWithRotation(Action):
         rot_rad = [np.deg2rad(a_deg) for a_deg in self.rot]  # How about np.deg2rad(np.clip(a_deg, -89, 89)) ?
         rot_rad[2] += np.deg2rad(current_angle)
         return quaternion_from_euler(*rot_rad)
+    
+    def get_pos_vel(self, time):
+        if self.start_time is None:
+            self.start_time = time
+        time -= self.start_time
+        if time > self.printing_part * self.total_time:
+            vel_x, vel_y, vel_z =  0, 0, 0
+        else:
+            angular_vel = np.rad2deg(self.angle_change / (self.total_time * self.printing_part))
+            vel_x = self.print_speed * np.cos(angular_vel * time) - self.print_speed * time * angular_vel * np.sin(angular_vel * time)
+            vel_y = self.print_speed * np.sin(angular_vel * time) - self.print_speed * time * angular_vel * np.cos(angular_vel * time)
+            vel_z = 0
+        
+        return [vel_x, vel_y, vel_z]

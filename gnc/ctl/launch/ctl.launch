@@ -14,12 +14,15 @@
 <!-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or         -->
 <!-- implied. See the License for the specific language governing            -->
 <!-- permissions and limitations under the License.                          -->
+
 <launch>
-  <arg name="name" default="ctl" />
+  <!--<arg name="name" default="ctl" />
   <arg name="manager" default="" />
   <include file="$(find ff_util)/launch/ff_nodelet.launch">
     <arg name="name" value="$(arg name)" />
     <arg name="manager" value="$(arg manager)" />
     <arg name="class" value="ctl/ctl" />
-  </include>
+  </include>-->
+  <node name="ctl_node" pkg="ctl" type="base_pid_controller.py" />
 </launch>
+

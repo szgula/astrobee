@@ -32,6 +32,8 @@
     textfile="$(find astrobee_handrail_30)/urdf/model.urdf" />
   <param name="/handrail_41_5/robot_description"
     textfile="$(find astrobee_handrail_41_5)/urdf/model.urdf" />
+  <param name="/cylinder/robot_description"
+    textfile="/home/szymongula/astrobee/description/description/urdf/my_object.urdf" />
   <!-- We must publish global transforms in case no robot has been spawned -->
   <node name="global_transforms" pkg="framestore" type="global_transforms" output="screen"/>
 </launch>

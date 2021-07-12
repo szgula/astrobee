@@ -16,6 +16,7 @@
 <!-- permissions and limitations under the License.                          -->
 
 <launch>
+  <param name="/use_sim_time" value="true"/>
 
   <!-- Additional options -->
   <arg name="drivers"/>                       <!-- Should we launch drivers? -->
@@ -59,7 +60,8 @@
     <arg name="default" value="true" />
   </include>
   <group unless="$(arg loc_only)">
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!-- comment block below to disable the ctl -->
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="ctl/ctl" />
       <arg name="name" value="ctl_node" />
       <arg name="manager" value="llp_gnc" />
@@ -68,7 +70,8 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
+    
     <include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="fam/fam" />
       <arg name="name" value="fam_node" />
@@ -208,5 +211,7 @@
     </include>
 
   </group>
+
+  <!--<node name="ctl_node" pkg="ctl" type="controller_wrapper.py" />-->
 
 </launch>

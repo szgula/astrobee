@@ -99,6 +99,7 @@
     <inertial>
       <mass value="9.0877"/>
       <origin xyz="0 0 0"/>
+      <!--<inertia ixx="0.1454" ixy="0.0" ixz="0.0" iyy="0.1366" iyz="0.0" izz="0.1594"/>-->
       <inertia ixx="0.1454" ixy="0.0" ixz="0.0" iyy="0.1366" iyz="0.0" izz="0.1594"/>
     </inertial>
   </link>
@@ -107,6 +108,58 @@
     <parent link="body" />
     <child link="inertial_link" />
   </joint>
+
+  <link name="printed_part">
+    <self_collide>false</self_collide>
+    <visual name="printed_part_visual">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <cylinder length="0.01" radius="0.01"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0.5 0 0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+  </link>
+
+  <joint name="printed_joint" type="prismatic">
+    <axis xyz="0 0 1"/>
+    <origin xyz="0.17 0 0" rpy="0 1.57075 0" />
+    <parent link="body" />
+    <child link="printed_part" />
+    <limit effort="1.0" lower="-1.0" upper="1.0" velocity="0.001"/>
+    <dynamics friction="0.9" damping="0.9"/>
+  </joint>
+
+  <link name="print_roll">
+    <self_collide>false</self_collide>
+    <inertial>
+      <mass value="0.01"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <joint name="roll_joint" type="fixed">
+    <origin xyz="0.0 0 0" rpy="0 0 0" />
+    <parent link="body" />
+    <child link="print_roll" />
+  </joint>
+
+  <gazebo>
+        <plugin name="gazebo_model_plugin_mass_controller" filename="libgazebo_model_plugin_mass_controller.so">
+            <name_link_to_change_mass>body</name_link_to_change_mass>
+        </plugin>
+  </gazebo>
+  
+  <gazebo>
+        <plugin name="gazebo_model_plugin_printing" filename="libgazebo_model_plugin_printing.so">
+            <name_link_to_print>printed_part</name_link_to_print>
+            <name_link_printing_roll>print_roll</name_link_printing_roll>
+        </plugin>
+  </gazebo>
 
   <!-- MODEL -->
   <xacro:include filename="$(find description)/urdf/model_drag.urdf.xacro" />

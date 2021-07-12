@@ -60,7 +60,7 @@
   </group>
 
   <!-- Vision / localization -->
-  <include file="$(find ff_util)/launch/ff_nodelet.launch">
+  <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
     <arg name="class" value="localization_manager/LocalizationManagerNodelet" />
     <arg name="name" value="localization_manager" />
     <arg name="manager" value="mlp_localization" />
@@ -70,6 +70,7 @@
     <arg name="debug" value="$(arg debug)" />
     <arg name="default" value="true" />
   </include>
+  
   <include file="$(find ff_util)/launch/ff_nodelet.launch">
     <arg name="class" value="handrail_detect/HandrailDetect" />
     <arg name="name" value="handrail_detect" />
@@ -79,11 +80,11 @@
     <arg name="extra" value="$(arg extra)" />
     <arg name="debug" value="$(arg debug)" />
     <arg name="default" value="true" />
-  </include>
+  </include>-->
 
   <group unless="$(arg loc_only)">
 
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="image_sampler/ImageSampler" />
       <arg name="name" value="image_sampler" />
       <arg name="manager" value="mlp_localization" />
@@ -92,7 +93,7 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
 
     <!-- Mobility -->
     <include file="$(find ff_util)/launch/ff_nodelet.launch">
@@ -148,7 +149,7 @@
     </include>
 
     <!-- Behaviors -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="dock/DockNodelet" />
       <arg name="name" value="dock" />
       <arg name="manager" value="mlp_dock" />
@@ -188,7 +189,7 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
 
     <!-- Management -->
     <include file="$(find ff_util)/launch/ff_nodelet.launch">
@@ -247,7 +248,7 @@
     </include>
 
     <!-- Perching arm -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="perching_arm/PerchingArmNode" />
       <arg name="name" value="perching_arm" />
       <arg name="manager" value="mlp_serial" />
@@ -256,14 +257,14 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
   </group>
 
   <!-- Drivers (optional) -->
   <group if="$(arg drivers)">
 
     <!-- NavCam pipeline -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="is_camera/camera" />
       <arg name="name" value="nav_cam" />
       <arg name="manager" value="mlp_vision" />
@@ -302,10 +303,10 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
 
     <!-- DockCam pipeline -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="is_camera/camera" />
       <arg name="name" value="dock_cam" />
       <arg name="manager" value="mlp_vision" />
@@ -334,10 +335,10 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
 
     <!-- Depth camera pipeline -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="pico_driver/PicoDriverNodelet" />
       <arg name="name" value="pico_driver" />
       <arg name="manager" value="mlp_depth_cam" />
@@ -346,10 +347,10 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
 
     <!-- Monitors -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="cpu_mem_monitor/CpuMemMonitor" />
       <arg name="name" value="mlp_cpu_mem_monitor" />
       <arg name="manager" value="mlp_monitors" />
@@ -368,10 +369,10 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
-    </include>
+    </include>-->
 
     <!-- Vive (optional) -->
-    <include file="$(find ff_util)/launch/ff_nodelet.launch">
+    <!--<include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="vive/ViveNodelet" />
       <arg name="name" value="vive" />
       <arg name="manager" value="mlp_vive" />
@@ -380,11 +381,13 @@
       <arg name="extra" value="$(arg extra)" />
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="false" />
-    </include>
+    </include>-->
 
   </group>
+  
 
-  <group if="$(arg loc_only)">
+
+  <!--<group if="$(arg loc_only)">
     <include file="$(find ff_util)/launch/ff_nodelet.launch">
       <arg name="class" value="localization_node/LocalizationNodelet" />
       <arg name="name" value="localization_node" />
@@ -415,6 +418,6 @@
       <arg name="debug" value="$(arg debug)" />
       <arg name="default" value="true" />
     </include>
-  </group>
+  </group>-->
 
 </launch>

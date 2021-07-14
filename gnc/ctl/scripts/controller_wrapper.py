@@ -72,7 +72,7 @@ class ControllerWrapper:
         return mes_heart
     
     def _get_print_length(self, data):
-        self.last_print = float(data.data)
+        self.last_print = float(data.data)  # in [m]
     
     def _get_command_mes(self):
         mes_command = FamCommand()

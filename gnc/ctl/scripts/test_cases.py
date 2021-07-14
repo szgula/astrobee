@@ -31,8 +31,9 @@ def get_test_cases_list():
             #SimpleRotationTest(value=35, print_length_cm=0),
             #SimpleRotationTest(value=35, print_length_cm=60),
             #SimpleRotationTest(value=35, print_length_cm=120),
-            #SimpleRotationTest(value=35, print_length_cm=180),
+            SimpleRotationTest(value=35, print_length_cm=180),
             #SimpleRotationTest(value=35, print_length_cm=240),
+            #SimpleRotationTest(value=35, print_length_cm=300),
             #SimpleTranslationTest(value=1, print_length_cm=240),
             #SimpleTranslationTest(value=0.4, print_length_cm=0),
             #TranslationWithRotationTest(print_length_cm=240),
@@ -42,7 +43,7 @@ def get_test_cases_list():
             #SimpleRotationTest(print_length_cm=60),
             #SimpleTranslationTest(print_length_cm=60),
             #TranslationWithRotationTest(print_length_cm=60),
-            StationaryPrintEndWithRotation()
+            #StationaryPrintEndWithRotation()
             ]
     
     return tests

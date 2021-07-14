@@ -1,7 +1,7 @@
 import numpy as np
 
 class LQR:
-    def __init__(self, K, inertia_change_scalar=0.15):
+    def __init__(self, K, inertia_change_scalar=0.57):
         self.K = K
         self.last_out = 0
         self.inertia_change_scalar = inertia_change_scalar
@@ -11,6 +11,7 @@ class LQR:
             v = 0
         e1 = target - state
         e2 = v_target - v
-        K1 = self.K[1] + inertia_change_indicator * self.inertia_change_scalar
-        out = self.K[0] * e1 + K1 * e2
+        K0 = self.K[0] #+ self.K[0] * inertia_change_indicator * self.inertia_change_scalar
+        K1 = self.K[1] + self.K[1] * inertia_change_indicator * self.inertia_change_scalar
+        out = K0 * e1 + K1 * e2
         return out

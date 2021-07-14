@@ -6,6 +6,7 @@ from ff_msgs.msg import FamCommand
 from ff_msgs.msg import Heartbeat
 from ff_msgs.msg import FlightMode
 from ff_msgs.msg import EkfState
+from std_msgs.msg import Float32
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from copy import deepcopy
 import numpy as np
@@ -39,6 +40,7 @@ class ControllerWrapper:
         self.mes_flight_mode = self._get_fligh_mode_mes()
         self._ekf_state = EkfState()
         self.last_vel = None
+        self.last_print = 0
 
         self.orient_contr = OrientationController(1/self.rate_contr_hz)
         self.pos_contr = PositionController(1/self.rate_contr_hz)
@@ -54,6 +56,7 @@ class ControllerWrapper:
         self.last_force = [0, 0, 0]
         rospy.Subscriber("loc/truth/pose", PoseStamped, self._ekf_callback)
         rospy.Subscriber("loc/truth/twist", TwistStamped, self._get_astrobee_vel)
+        rospy.Subscriber("/model_print_controler_rosnode/print_status", Float32, self._get_print_length)
         self.cycles_since_target_update = 0
         self.max_cycles_without_target_update = 20
 
@@ -67,6 +70,9 @@ class ControllerWrapper:
         mes_heart.nodelet_manager= "/llp_gnc"
         mes_heart.node = "ctl"
         return mes_heart
+    
+    def _get_print_length(self, data):
+        self.last_print = float(data.data)
     
     def _get_command_mes(self):
         mes_command = FamCommand()
@@ -181,7 +187,7 @@ class ControllerWrapper:
             dx, dy, dz = self.target_position
             orientation = euler_from_quaternion(self.target_orientation)
             x_rot, y_rot, z_rot = orientation 
-            torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation, self.last_vel, t_now)
+            torques = self.orient_contr(x_rot, y_rot, z_rot, self._ekf_state.pose.orientation, self.last_vel, t_now, inertia_change_param=self.last_print)
             forces = self.pos_contr(dx, dy, dz, self._ekf_state.pose.position, self.last_vel, t_now)
             control_mode=2
             status=2

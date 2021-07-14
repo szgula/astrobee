@@ -27,18 +27,22 @@ def get_test_cases_list():
             #ModelIdentificationTest(r_z=45),
             #StationaryPrintEnd(),
             #QuickTest(),
-            SimpleRotationTest(value=2, print_length_cm=0),
-            SimpleRotationTest(value=35, print_length_cm=0),
-            #SimpleTranslationTest(value=1, print_length_cm=0),
+            #SimpleRotationTest(value=2, print_length_cm=0),
+            #SimpleRotationTest(value=35, print_length_cm=0),
+            #SimpleRotationTest(value=35, print_length_cm=60),
+            #SimpleRotationTest(value=35, print_length_cm=120),
+            #SimpleRotationTest(value=35, print_length_cm=180),
+            #SimpleRotationTest(value=35, print_length_cm=240),
+            #SimpleTranslationTest(value=1, print_length_cm=240),
             #SimpleTranslationTest(value=0.4, print_length_cm=0),
-            TranslationWithRotationTest(print_length_cm=0),
+            #TranslationWithRotationTest(print_length_cm=240),
 ##
-            #SimpleRotationTest(print_length_cm=0, printing_speed=0.03/1000),
+            #SimpleRotationTest(value=35, print_length_cm=0, printing_speed=0.03/1000),
             #
-            SimpleRotationTest(print_length_cm=60),
+            #SimpleRotationTest(print_length_cm=60),
             #SimpleTranslationTest(print_length_cm=60),
-            TranslationWithRotationTest(print_length_cm=60),
-            #StationaryPrintEndWithRotation()
+            #TranslationWithRotationTest(print_length_cm=60),
+            StationaryPrintEndWithRotation()
             ]
     
     return tests

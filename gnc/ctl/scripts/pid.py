@@ -13,7 +13,7 @@ class PID:
         self.acumulator = 0
         self.last_out = 0
 
-    def __call__(self, target, state, v=None, t=None, v_target=0):
+    def __call__(self, target, state, v=None, t=None, v_target=0, **kwargs):
         if self.last_t is None or t is None or self.last_t > t:
             dt = self.dt
         elif self.last_t == t:

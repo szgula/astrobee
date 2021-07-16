@@ -11,7 +11,7 @@ class OrientationController:
         #self.contr_x  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 0.075, 0.0005, 18.0/100, 20, dt
         #self.contr_y  = PID(0.075, 0.0005, 18.0/100, 20, dt)  # 0.15, 0.015, 30.0/100, 200, dt
         #self.contr_z  = PID(0.075, 0.0005, 18.0/100, 20, dt)
-        self.contr_x = LQR([0.1393, 0.2629]) # 0.0443    0.1796
+        self.contr_x = LQR([0.1393, 0.2629], inertia_change_scalar=0.0) # 0.0443    0.1796
         self.contr_y = LQR([0.1393, 0.2629])
         self.contr_z = LQR([0.1393, 0.2629])
         self.limit = 0.2 * 0.1

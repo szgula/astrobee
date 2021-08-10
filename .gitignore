@@ -74,6 +74,10 @@ data
 doc/html
 doc/latex
 
+gnc/ctl/test/tests_postprocessing/.idea/*
+gnc/ctl/test/tests_postprocessing/.venv/*
+gnc/ctl/test/tests_postprocessing/*.pdf
+
 # dds config files, they are maintained in the astrobee common submodule
 astrobee/config/dds
 
